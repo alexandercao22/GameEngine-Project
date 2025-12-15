@@ -31,12 +31,14 @@ void Interface::ShowPoolInfo()
 	ImGui::NewLine();
 
 	// Info
+	const int nPools = _pools.size();
 	for (int i = 0; i < nPools; i++) {
 		PoolContainer *currPool = &_pools[i];
 
 		if (currentPool == currPool->pool->GetId()) {
 			PoolStats poolStats = currPool->pool->GetStats();
 			ImGui::Text(("Bytes used: " + std::to_string(poolStats.usedMemory) + "/" + std::to_string(poolStats.capacity)).c_str());
+			poolPercent = (float)poolStats.usedMemory / poolStats.capacity;
 			break;
 		}
 	}
@@ -67,7 +69,7 @@ void Interface::ShowPoolInfo()
 			// Show all allocations to the current pool allocator
 			std::unordered_map<void *, Allocation> allocations = MemoryTracker::Instance().GetAllocations();
 			int index = 0;
-			for (void *ptr : currPool->ptrs) {
+			for (void *ptr : *currPool->ptrs) {
 				Allocation allocation = allocations[ptr];
 				if (allocation.allocator == Allocator::Pool && allocation.allocatorId == currentPool) {
 					ImGui::Text(std::string("Allocator ID: " + std::to_string(allocation.allocatorId)).c_str());
@@ -83,8 +85,8 @@ void Interface::ShowPoolInfo()
 					if (ImGui::Button(buttonText.c_str())) {
 						currPool->pool->Free(allocation.ptr);
 
-						auto idx = std::find(currPool->ptrs.begin(), currPool->ptrs.end(), allocation.ptr);
-						currPool->ptrs.erase(idx);
+						auto idx = std::find(currPool->ptrs->begin(), currPool->ptrs->end(), allocation.ptr);
+						currPool->ptrs->erase(idx);
 
 						// Update tracker
 						PoolStats poolStats = currPool->pool->GetStats();
@@ -121,12 +123,14 @@ void Interface::ShowBuddyInfo()
 	ImGui::NewLine();
 
 	// Info
+	const int nBuddies = _buddies.size();
 	for (int i = 0; i < nBuddies; i++) {
 		BuddyContainer *currBuddy = &_buddies[i];
 
 		if (currentBuddy == currBuddy->buddy->GetId()) {
 			BuddyStats buddyStats = currBuddy->buddy->GetStats();
 			ImGui::Text(("Bytes used: " + std::to_string(buddyStats.usedMemory) + "/" + std::to_string(buddyStats.capacity)).c_str());
+			buddyPercent = (float)buddyStats.usedMemory / buddyStats.capacity;
 			break;
 		}
 	}
@@ -140,39 +144,41 @@ void Interface::ShowBuddyInfo()
 
 		if (currentBuddy == currBuddy->buddy->GetId()) {
 			currBuddy->buddy->DrawInterface();
-		}
-		ImGui::NewLine();
-		ImGui::NewLine();
+			ImGui::NewLine();
+			ImGui::NewLine();
 
-		// Show all allocations to the current pool allocator
-		std::unordered_map<void *, Allocation> allocations = MemoryTracker::Instance().GetAllocations();
-		int index = 0;
-		for (auto &pair : allocations) {
-			Allocation allocation = pair.second;
-			if (allocation.allocator == Allocator::Buddy && allocation.allocatorId == currentBuddy) {
-				ImGui::Text(std::string("Allocator ID: " + std::to_string(allocation.allocatorId)).c_str());
-				const void *address = (const void *)allocation.ptr;
-				std::stringstream ss;
-				ss << address;
-				ImGui::Text(std::string("Pointer: " + ss.str()).c_str());
-				ImGui::Text(std::string("Size: " + std::to_string(allocation.size)).c_str());
-				ImGui::Text(std::string("Tag: " + allocation.tag).c_str());
-				ImGui::Text(std::string("Timestamp: " + FormatTimePoint(allocation.timestamp)).c_str());
+			// Show all allocations to the current buddy allocator
+			std::unordered_map<void *, Allocation> allocations = MemoryTracker::Instance().GetAllocations();
+			int index = 0;
+			for (auto &pair : allocations) {
+				Allocation allocation = pair.second;
+				if (allocation.allocator == Allocator::Buddy && allocation.allocatorId == currentBuddy) {
+					ImGui::Text(std::string("Allocator ID: " + std::to_string(allocation.allocatorId)).c_str());
+					const void *address = (const void *)allocation.ptr;
+					std::stringstream ss;
+					ss << address;
+					ImGui::Text(std::string("Pointer: " + ss.str()).c_str());
+					ImGui::Text(std::string("Size: " + std::to_string(allocation.size)).c_str());
+					ImGui::Text(std::string("Tag: " + allocation.tag).c_str());
+					ImGui::Text(std::string("Timestamp: " + FormatTimePoint(allocation.timestamp)).c_str());
 
-				std::string buttonText = "Free##" + std::to_string(index++);
-				if (ImGui::Button(buttonText.c_str())) {
-					currBuddy->buddy->Free(allocation.ptr);
+					std::string buttonText = "Free##" + std::to_string(index++);
+					if (ImGui::Button(buttonText.c_str())) {
+						currBuddy->buddy->Free(allocation.ptr);
 
-					auto idx = std::find(currBuddy->ptrs.begin(), currBuddy->ptrs.end(), allocation.ptr);
-					currBuddy->ptrs.erase(idx);
+						auto idx = std::find(currBuddy->ptrs->begin(), currBuddy->ptrs->end(), allocation.ptr);
+						currBuddy->ptrs->erase(idx);
 
-					// Update tracker
-					BuddyStats buddyStats = currBuddy->buddy->GetStats();
-					MemoryTracker::Instance().TrackAllocator(currBuddy->buddy->GetId(), buddyStats);
-					buddyPercent = (float)buddyStats.usedMemory / buddyStats.capacity;
+						// Update tracker
+						BuddyStats buddyStats = currBuddy->buddy->GetStats();
+						MemoryTracker::Instance().TrackAllocator(currBuddy->buddy->GetId(), buddyStats);
+						buddyPercent = (float)buddyStats.usedMemory / buddyStats.capacity;
+					}
+					ImGui::NewLine();
 				}
-				ImGui::NewLine();
 			}
+
+			break;
 		}
 	}
 }
@@ -193,17 +199,19 @@ void Interface::ShowStackInfo()
 			return true;
 		}, &stackIds, stackIds.size());
 
-	static float stackPercent= 0.0f;
+	static float stackPercent = 0.0f;
 
 	ImGui::NewLine();
 
 	// Info
+	const int nStacks = _stacks.size();
 	StackContainer *currStack = nullptr;
 	for (int i = 0; i < nStacks; i++) {
 		currStack = &_stacks[i];
 		if (currentStack == currStack->stack->GetId()) {
 			StackStats stackStats = currStack->stack->GetStats();
 			ImGui::Text(("Bytes used: " + std::to_string(stackStats.usedMemory) + "/" + std::to_string(stackStats.capacity)).c_str());
+			stackPercent = (float)stackStats.usedMemory / stackStats.capacity;
 			break;
 		}
 	}
@@ -215,7 +223,7 @@ void Interface::ShowStackInfo()
 	ImGui::NewLine();
 	ImGui::NewLine();
 
-	// Show all allocations to the current pool allocator
+	// Show all allocations to the current stack allocator
 	std::unordered_map<void *, Allocation> allocations = MemoryTracker::Instance().GetAllocations();
 	int index = 0;
 	for (auto &pair : allocations) {
@@ -230,6 +238,8 @@ void Interface::ShowStackInfo()
 			ImGui::Text(std::string("Tag: " + allocation.tag).c_str());
 			ImGui::Text(std::string("Timestamp: " + FormatTimePoint(allocation.timestamp)).c_str());
 			ImGui::NewLine();
+
+			break;
 		}
 	}
 }
