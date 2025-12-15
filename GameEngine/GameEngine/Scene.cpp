@@ -177,7 +177,7 @@ bool Scene::Init(unsigned int width, unsigned int height)
 	_width = width;
 	_height = height;
 
-	InitWindow(_width, _height, "Game Engine Assignment 3");
+	InitWindow(_width, _height, "Game Engine Project");
 	//SetTargetFPS(60);
 	rlImGuiSetup(true);
 
