@@ -1,6 +1,31 @@
 #include "ScenePart.h"
 #include <math.h>
 
+ScenePart::~ScenePart()
+{
+	if (_pool) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_pool->Free(ent);
+		}
+		delete _pool;
+	}
+	if (_buddy) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_buddy->Free(ent);
+		}
+		delete _buddy;
+	}
+	if (_stack) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_stack->Free();
+		}
+		delete _stack;
+	}
+}
+
 bool ScenePart::Init(Vector3 pos, std::string path) {
 	_centerPos.x = pos.x;
 	_centerPos.y = pos.y;
@@ -42,8 +67,47 @@ std::vector<Entity *> ScenePart::GetEntities()
 
 void ScenePart::DestroyEntities()
 {
-	for (Entity *ent : _entities) {
-		delete ent;
+	if (_pool) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_pool->Free(ent);
+		}
+	}
+	if (_buddy) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_buddy->Free(ent);
+		}
+	}
+	if (_stack) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_stack->Free();
+		}
 	}
 	_entities.clear();
+}
+
+PoolAllocator *ScenePart::GetPoolAllocator()
+{
+	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
+		_pool = new PoolAllocator;
+	}
+	return _pool;
+}
+
+BuddyAllocator *ScenePart::GetBuddyAllocator()
+{
+	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
+		_buddy = new BuddyAllocator;
+	}
+	return _buddy;
+}
+
+StackAllocator *ScenePart::GetStackAllocator()
+{
+	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
+		_stack = new StackAllocator;
+	}
+	return _stack;
 }
