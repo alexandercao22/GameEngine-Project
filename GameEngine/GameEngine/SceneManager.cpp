@@ -142,13 +142,9 @@ void SceneManager::Testing()
 
 SceneManager::~SceneManager()
 {
-	//for (Entity *ent : _entities) {
-	//	delete ent;
-	//}
-
 	for (Entity *ent : _entities) {
 		ent->~Entity();
-		_buddy.Free(ent);
+		_buddy->Free(ent);
 	}
 
 	for (Scene * part : _scenes) {
@@ -156,6 +152,7 @@ SceneManager::~SceneManager()
 	}
 
 	ResourceManager::Instance().GetPackageManager()->UnmountAllPackages();
+	delete _buddy;
 }
 
 bool SceneManager::Init(unsigned int width, unsigned int height)
@@ -168,7 +165,8 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 	rlImGuiSetup(true);
 
 	// Initialize the global buddy allocator
-	_buddy.Init(512);
+	_buddy->Init(512);
+	Interface::Instance().AddAllocator(_buddy, &_entities);
 
 	// Intiialize floors
 	Mesh floorMesh = GenMeshPlane(40, 40, 1, 1);
@@ -222,7 +220,7 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 		//ent->Init();
 		//_entities.push_back(ent);
 
-		void *ahyuck = (EntityGoofy *)_buddy.Request(sizeof(EntityGoofy));
+		void *ahyuck = (EntityGoofy *)_buddy->Request(sizeof(EntityGoofy), "Goofy");
 		EntityGoofy *goofy = new (ahyuck) EntityGoofy;
 		goofy->Init();
 		Transform *t = goofy->GetTransform();

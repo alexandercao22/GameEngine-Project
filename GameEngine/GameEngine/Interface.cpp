@@ -366,3 +366,26 @@ void Interface::RenderInterface()
 	ImGui::End();
 }
 
+void Interface::AddAllocator(PoolAllocator *&allocator, std::vector<Entity *> *ptrs)
+{
+	PoolContainer pCon;
+	pCon.pool = allocator;
+	pCon.ptrs = ptrs;
+	_pools.push_back(pCon);
+}
+
+void Interface::AddAllocator(BuddyAllocator *&allocator, std::vector<Entity *> *ptrs)
+{
+	BuddyContainer bCon;
+	bCon.buddy = allocator;
+	bCon.ptrs = ptrs;
+	_buddies.push_back(bCon);
+}
+
+void Interface::AddAllocator(StackAllocator *&allocator, std::vector<Entity *> *ptrs)
+{
+	StackContainer sCon;
+	sCon.stack = allocator;
+	sCon.ptrs = ptrs;
+	_stacks.push_back(sCon);
+}

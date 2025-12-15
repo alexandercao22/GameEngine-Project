@@ -13,7 +13,7 @@ class SceneManager
 {
 private:
 	// Global entities
-	BuddyAllocator _buddy;
+	BuddyAllocator *_buddy = new BuddyAllocator;
 	std::vector<Entity *> _entities;
 
 	Model _floor;

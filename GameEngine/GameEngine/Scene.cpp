@@ -1,4 +1,5 @@
 #include "Scene.h"
+#include "Interface.h"
 
 Scene::~Scene()
 {
@@ -91,6 +92,7 @@ PoolAllocator *Scene::GetPoolAllocator()
 {
 	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
 		_pool = new PoolAllocator;
+		Interface::Instance().AddAllocator(_pool, &_entities);
 	}
 	return _pool;
 }
@@ -99,6 +101,7 @@ BuddyAllocator *Scene::GetBuddyAllocator()
 {
 	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
 		_buddy = new BuddyAllocator;
+		Interface::Instance().AddAllocator(_buddy, &_entities);
 	}
 	return _buddy;
 }
@@ -107,6 +110,7 @@ StackAllocator *Scene::GetStackAllocator()
 {
 	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
 		_stack = new StackAllocator;
+		Interface::Instance().AddAllocator(_stack, &_entities);
 	}
 	return _stack;
 }

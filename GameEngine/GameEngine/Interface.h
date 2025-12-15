@@ -6,19 +6,21 @@
 #include "BuddyAllocator.h"
 #include "StackAllocator.h"
 
+#include "Entity.h"
+
 struct PoolContainer {
 	PoolAllocator *pool;
-	std::vector<void *> ptrs;
+	std::vector<Entity *> *ptrs;
 };
 
 struct BuddyContainer {
 	BuddyAllocator *buddy;
-	std::vector<void *> ptrs;
+	std::vector<Entity *> *ptrs;
 };
 
 struct StackContainer {
 	StackAllocator *stack;
-	std::vector<void *> ptrs;
+	std::vector<Entity *> *ptrs;
 };
 
 class Interface
@@ -53,5 +55,9 @@ public:
 
 	void Update();
 	void RenderInterface();
+
+	void AddAllocator(PoolAllocator *&allocator, std::vector<Entity *> *ptrs);
+	void AddAllocator(BuddyAllocator *&allocator, std::vector<Entity *> *ptrs);
+	void AddAllocator(StackAllocator *&allocator, std::vector<Entity *> *ptrs);
 };
 
