@@ -494,3 +494,33 @@ void Interface::Update()
 	rlImGuiEnd();
 	EndDrawing();
 }
+
+void Interface::RenderInterface()
+{
+	ImGui::Begin(" ", NULL);
+	ImGui::SetWindowPos(ImVec2(0.0f, 20.0f));
+	ImGui::SetWindowSize(ImVec2(_width, _height));
+
+	ImGui::Text("Active allocators:");
+
+	// Allocator info
+	ImGui::NewLine();
+	ImGui::Text("Allocator info");
+
+	static int chosenType = 0;
+	const char *type[] = { "PoolAllocator", "BuddyAllocator", "StackAllocator" };
+	ImGui::Combo("Allocator types", &chosenType, type, IM_ARRAYSIZE(type));
+
+	if (chosenType == 0) { // Pool
+		ShowPoolInfo();
+	}
+	else if (chosenType == 1) { // Buddy
+		ShowBuddyInfo();
+	}
+	else if (chosenType == 2) { // Stack
+		ShowStackInfo();
+	}
+
+	ImGui::End();
+}
+

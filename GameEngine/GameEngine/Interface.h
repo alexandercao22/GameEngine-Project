@@ -54,5 +54,6 @@ public:
 	bool Init();
 
 	void Update();
+	void RenderInterface();
 };
 
