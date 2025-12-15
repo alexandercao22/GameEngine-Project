@@ -29,51 +29,6 @@ void Interface::ShowPoolInfo()
 	static float poolPercent = 0.0f;
 
 	ImGui::NewLine();
-	ImGui::Text("Allocation to current allocator");
-
-	// Allocate
-	const int nPools = poolAllocators.size();
-	if (ImGui::Button("Allocate") && nPools > 0) {
-		for (int i = 0; i < nPools; i++) {
-			PoolContainer *currPool = &_pools[i];
-
-			if (currentPool == currPool->pool->GetId()) {
-				void *ptr = currPool->pool->Request();
-				if (ptr) {
-					currPool->ptrs.push_back(ptr);
-				}
-
-				// Update tracker
-				PoolStats poolStats = currPool->pool->GetStats();
-				MemoryTracker::Instance().TrackAllocator(currPool->pool->GetId(), poolStats);
-				poolPercent = (float)poolStats.usedMemory / poolStats.capacity;
-
-				break;
-			}
-		}
-	}
-
-	// Free
-	// There needs to be at least 1 active pool allocator
-	if (ImGui::Button("Free random") && nPools > 0) {
-		for (int i = 0; i < nPools; i++) {
-			PoolContainer *currPool = &_pools[i];
-
-			if (currentPool == currPool->pool->GetId() && currPool->ptrs.size() > 0) {
-				int randIdx = std::rand() % currPool->ptrs.size();
-				if (currPool->pool->Free(currPool->ptrs[randIdx])) {
-					currPool->ptrs.erase(currPool->ptrs.begin() + randIdx);
-				}
-
-				// Update tracker
-				PoolStats poolStats = currPool->pool->GetStats();
-				MemoryTracker::Instance().TrackAllocator(currPool->pool->GetId(), poolStats);
-				poolPercent = (float)poolStats.usedMemory / poolStats.capacity;
-
-				break;
-			}
-		}
-	}
 
 	// Info
 	for (int i = 0; i < nPools; i++) {
@@ -164,54 +119,6 @@ void Interface::ShowBuddyInfo()
 	static float buddyPercent = 0.0f;
 
 	ImGui::NewLine();
-	ImGui::Text("Allocation to current allocator");
-
-	// Allocate
-	static int size = 0;
-	ImGui::InputInt("Size", &size);
-
-	const int nBuddies = buddyAllocators.size();
-	if (ImGui::Button("Allocate") && nBuddies > 0) {
-		for (int i = 0; i < nBuddies; i++) {
-			BuddyContainer *currBuddy = &_buddies[i];
-
-			if (currentBuddy == currBuddy->buddy->GetId()) {
-				void *ptr = currBuddy->buddy->Request(size);
-				if (ptr) {
-					currBuddy->ptrs.push_back(ptr);
-				}
-
-				// Update tracker
-				BuddyStats buddyStats = currBuddy->buddy->GetStats();
-				MemoryTracker::Instance().TrackAllocator(currBuddy->buddy->GetId(), buddyStats);
-				buddyPercent = (float)buddyStats.usedMemory / buddyStats.capacity;
-
-				break;
-			}
-		}
-	}
-
-	// Free
-	// There needs to be at least 1 active buddy allocator
-	if (ImGui::Button("Free random") && nBuddies > 0) {
-		for (int i = 0; i < nBuddies; i++) {
-			BuddyContainer *currBuddy = &_buddies[i];
-
-			if (currentBuddy == currBuddy->buddy->GetId() && currBuddy->ptrs.size() > 0) {
-				int randIdx = std::rand() % currBuddy->ptrs.size();
-				if (currBuddy->buddy->Free(currBuddy->ptrs[randIdx])) {
-					currBuddy->ptrs.erase(currBuddy->ptrs.begin() + randIdx);
-				}
-
-				// Update tracker
-				BuddyStats buddyStats = currBuddy->buddy->GetStats();
-				MemoryTracker::Instance().TrackAllocator(currBuddy->buddy->GetId(), buddyStats);
-				buddyPercent = (float)buddyStats.usedMemory / buddyStats.capacity;
-
-				break;
-			}
-		}
-	}
 
 	// Info
 	for (int i = 0; i < nBuddies; i++) {
@@ -289,54 +196,6 @@ void Interface::ShowStackInfo()
 	static float stackPercent= 0.0f;
 
 	ImGui::NewLine();
-	ImGui::Text("Allocation to current allocator");
-
-	// Allocate
-	static int size = 0;
-	ImGui::InputInt("Size", &size);
-
-	const int nStacks = stackAllocators.size();
-	if (ImGui::Button("Allocate") && nStacks > 0) {
-		for (int i = 0; i < nStacks; i++) {
-			StackContainer *currStack = &_stacks[i];
-
-			if (currentStack == currStack->stack->GetId()) {
-				void *ptr = currStack->stack->Request(size);
-				if (ptr) {
-					currStack->ptrs.push_back(ptr);
-				}
-
-				// Update tracker
-				StackStats stackStats = currStack->stack->GetStats();
-				MemoryTracker::Instance().TrackAllocator(currStack->stack->GetId(), stackStats);
-				stackPercent = (float)stackStats.usedMemory / stackStats.capacity;
-
-				break;
-			}
-		}
-	}
-
-	// Free
-	// There needs to be at least 1 active stack allocator
-	if (ImGui::Button("Free") && nStacks > 0) {
-		for (int i = 0; i < nStacks; i++) {
-			StackContainer *currStack = &_stacks[i];
-
-			if (currentStack == currStack->stack->GetId() && currStack->ptrs.size() > 0) {
-				int randIdx = std::rand() % currStack->ptrs.size();
-				if (currStack->stack->Free()) {
-					currStack->ptrs.erase(currStack->ptrs.begin() + randIdx);
-				}
-
-				// Update tracker
-				StackStats stackStats = currStack->stack->GetStats();
-				MemoryTracker::Instance().TrackAllocator(currStack->stack->GetId(), stackStats);
-				stackPercent = (float)stackStats.usedMemory / stackStats.capacity;
-
-				break;
-			}
-		}
-	}
 
 	// Info
 	StackContainer *currStack = nullptr;
@@ -388,11 +247,6 @@ std::string Interface::FormatTimePoint(const std::chrono::system_clock::time_poi
 
 }
 
-Interface::Interface()
-{
-	Init();
-}
-
 Interface::~Interface()
 {
 	for (PoolContainer pCon : _pools) {
@@ -404,18 +258,6 @@ Interface::~Interface()
 	for (StackContainer sCon : _stacks) {
 		delete sCon.stack;
 	}
-}
-
-bool Interface::Init()
-{
-	std::srand(std::time({}));
-
-	InitWindow(_width, _height, "Game Engine Assignment 2");
-	SetTargetFPS(60);
-
-	rlImGuiSetup(true);
-
-	return false;
 }
 
 void Interface::Update()

@@ -23,26 +23,6 @@ bool SceneManager::RenderInterface()
 	ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
 	ImGui::SetWindowSize(ImVec2(200.0f, _height));
 
-	if (ImGui::Button("Open File Explorer")) {
-		std::string path = OpenFileDialog();
-		if (path.find(".obj") != std::string::npos ||
-			path.find(".gltf") != std::string::npos ||
-			path.find(".png") != std::string::npos ||
-			path.find(".jpg") != std::string::npos) {
-			CopyFileToResources(path, "Resources");
-
-			size_t backslash = path.find_last_of("\\") + 1;
-			std::string file = "Resources/" + path.substr(backslash, path.length() - backslash);
-			std::cout << file << std::endl;
-
-		}
-	}
-
-	static char buf[64] = "";
-	ImGui::InputText("File", buf, IM_ARRAYSIZE(buf));
-	if (ImGui::Button("Load")) {
-		std::string path = "Resource/" + std::string(buf);
-	}
 	ImGui::Separator();
 	ImGui::Text("Camera Position:");
 	ImGui::BulletText("X: %.2f", _camera.position.x);

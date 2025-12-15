@@ -48,10 +48,8 @@ public:
 	Interface(const Interface &) = delete;
 	Interface &operator=(const Interface &) = delete;
 
-	Interface();
+	Interface() = default;
 	~Interface();
-
-	bool Init();
 
 	void Update();
 	void RenderInterface();

@@ -1,5 +1,4 @@
 #include "Scene.h"
-#include <math.h>
 
 Scene::~Scene()
 {
