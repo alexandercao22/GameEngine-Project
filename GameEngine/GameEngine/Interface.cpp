@@ -238,8 +238,6 @@ void Interface::ShowStackInfo()
 			ImGui::Text(std::string("Tag: " + allocation.tag).c_str());
 			ImGui::Text(std::string("Timestamp: " + FormatTimePoint(allocation.timestamp)).c_str());
 			ImGui::NewLine();
-
-			break;
 		}
 	}
 }
