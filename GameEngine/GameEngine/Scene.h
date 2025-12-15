@@ -5,10 +5,18 @@
 #include <string>
 #include "raylib.h"
 #include "ScenePart.h"
+#include "MemoryTracker.h"
+#include "PoolAllocator.h"
+#include "StackAllocator.h"
+#include "BuddyAllocator.h"
 
 class Scene
 {
 private:
+	std::vector<PoolAllocator*> _poolAllocators;
+	std::vector<StackAllocator*> _stackAllocators;
+	std::vector<BuddyAllocator*> _buddyAllocators;
+
 	std::vector<std::string> _GUIDs; // GUIDs needed for this specific scene
 
 	std::vector<Entity *> _entities;

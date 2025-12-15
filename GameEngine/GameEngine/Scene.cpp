@@ -19,42 +19,216 @@
 bool Scene::RenderInterface()
 {
 	ImGui::Begin("ImGui");
-	ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
-	ImGui::SetWindowSize(ImVec2(200.0f, _height));
+	// Standard window setup
+	ImGui::SetWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetWindowSize(ImVec2(_width / 2.0f, (float)_height), ImGuiCond_FirstUseEver);
 
-	if (ImGui::Button("Open File Explorer")) {
-		std::string path = OpenFileDialog();
-		if (path.find(".obj") != std::string::npos ||
-			path.find(".gltf") != std::string::npos ||
-			path.find(".png") != std::string::npos ||
-			path.find(".jpg") != std::string::npos) {
-			CopyFileToResources(path, "Resources");
+	// Resource manager visualization
+	{
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "RESOURCE MANAGER");
 
-			size_t backslash = path.find_last_of("\\") + 1;
-			std::string file = "Resources/" + path.substr(backslash, path.length() - backslash);
-			std::cout << file << std::endl;
+		std::vector<ResourceData> resources = ResourceManager::Instance().GetCachedResourcesData();
+		static int selectedIndex = -1;
 
+		if (selectedIndex >= (int)resources.size()) {
+			selectedIndex = -1;
+		}
+
+		const char* previewValue = (selectedIndex >= 0 && selectedIndex < resources.size())
+			? resources[selectedIndex].guid.c_str()
+			: "Select a Resource...";
+
+		if (ImGui::BeginCombo("Resources", previewValue)) {
+			for (int i = 0; i < resources.size(); ++i) {
+				const bool isSelected = (selectedIndex == i);
+
+				// Create the selectable item
+				if (ImGui::Selectable(resources[i].guid.c_str(), isSelected)) {
+					selectedIndex = i;
+				}
+
+				// Set the initial focus when opening the combo (scrolling + keyboard navigation)
+				if (isSelected) {
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (selectedIndex >= 0 && selectedIndex < resources.size()) {
+			ResourceData& selectedResource = resources[selectedIndex];
+
+			ImGui::Separator();
+			ImGui::Text("Selected Resource Details:");
+			ImGui::BulletText("Type: %s", selectedResource.type.c_str());
+			ImGui::BulletText("GUID: %s", selectedResource.guid.c_str());
+			ImGui::BulletText("Ref Count: %d", selectedResource.refCount);
+
+			ImGui::BulletText("Memory Usage: %llu bytes (%.2f MB)",
+				selectedResource.memoryUsage,
+				selectedResource.memoryUsage / (1024.0f * 1024.0f));
+		}
+
+	}
+
+	ImGui::Spacing();
+	ImGui::Spacing();
+
+	// Memory tracking visualization
+	{
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "--- MEMORY TRACKER ---");
+
+		MemoryTracker& tracker = MemoryTracker::Instance();
+		auto allAllocations = tracker.GetAllocations();
+
+		// --- HELPER LAMBDAS ---
+		auto FormatBytes = [](size_t bytes) -> std::string {
+			if (bytes < 1024) return std::to_string(bytes) + " B";
+			float k = (float)bytes / 1024.0f;
+			std::stringstream ss; ss << std::fixed << std::setprecision(2) << k << " KB";
+			return ss.str();
+			};
+
+		auto RenderAllocationList = [&](Allocator type, int id) {
+			ImGui::PushID((int)type * 1000 + id); // Scope per allocator instance
+
+			if (ImGui::TreeNode("Live Allocations")) {
+				bool foundAny = false;
+				int i = 0;
+				for (auto& [ptr, alloc] : allAllocations) {
+					if (alloc.allocator == type && alloc.allocatorId == id) {
+						foundAny = true;
+						ImGui::PushID(i++);
+
+						std::string tag = alloc.tag.empty() ? "Untitled" : alloc.tag;
+						ImGui::TextColored(ImVec4(0.6f, 1.0f, 1.0f, 1.0f), "%s", tag.c_str());
+						ImGui::SameLine();
+						ImGui::TextDisabled("(%p)", ptr);
+
+						ImGui::Indent();
+						ImGui::Text("Size: %s", FormatBytes(alloc.size).c_str());
+
+						std::time_t t = std::chrono::system_clock::to_time_t(alloc.timestamp);
+						char timeBuf[26]; ctime_s(timeBuf, sizeof(timeBuf), &t);
+						timeBuf[std::strlen(timeBuf) - 1] = '\0';
+						ImGui::TextDisabled("Time: %s", timeBuf);
+
+						ImGui::Unindent();
+						ImGui::PopID();
+						ImGui::Separator();
+					}
+				}
+				if (!foundAny) ImGui::TextDisabled("No active allocations.");
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+			};
+
+		if (ImGui::CollapsingHeader("Stack Allocators")) {
+			ImGui::PushID("Stacks"); // Global Stack Scope
+			for (auto* stack : _stackAllocators) {
+				ImGui::PushID(stack->GetId()); // Instance Scope
+
+				StackStats stats = stack->GetStats();
+				float fraction = (stats.capacity > 0) ? (float)stats.usedMemory / (float)stats.capacity : 0.0f;
+
+				ImGui::Text("Stack ID: %d", stack->GetId());
+				char overlay[32];
+				sprintf_s(overlay, "%.1f%% (%s / %s)", fraction * 100.0f, FormatBytes(stats.usedMemory).c_str(), FormatBytes(stats.capacity).c_str());
+				ImGui::ProgressBar(fraction, ImVec2(-1.0f, 0.0f), overlay);
+
+				RenderAllocationList(Allocator::Stack, stack->GetId());
+
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+			ImGui::PopID();
+		}
+
+		if (ImGui::CollapsingHeader("Pool Allocators")) {
+			ImGui::PushID("Pools"); // Global Pool Scope
+			for (auto* pool : _poolAllocators) {
+				ImGui::PushID(pool->GetId()); // Instance Scope
+
+				PoolStats stats = pool->GetStats();
+				float fraction = (stats.capacity > 0) ? (float)stats.usedMemory / (float)stats.capacity : 0.0f;
+
+				ImGui::Text("Pool ID: %d | Block Size: %s", pool->GetId(), FormatBytes(stats.capacity / (stats.numBlocks > 0 ? stats.numBlocks : 1)).c_str());
+
+				char overlay[32];
+				sprintf_s(overlay, "%.1f%%", fraction * 100.0f);
+				ImGui::ProgressBar(fraction, ImVec2(-1.0f, 0.0f), overlay);
+
+				// --- VISUALIZATION BLOCK START ---
+				ImGui::Text("Block Map:");
+				ImDrawList* draw = ImGui::GetWindowDrawList();
+				ImVec2 p = ImGui::GetCursorScreenPos();
+
+				int numSlots = pool->GetNumSlots();
+				float blockWidth = 12.0f;
+				float blockHeight = 12.0f;
+				float spacing = 2.0f;
+				float xOffset = 0.0f;
+				float yOffset = 0.0f;
+				float windowWidth = ImGui::GetContentRegionAvail().x;
+
+				for (int j = 0; j < numSlots; j++) {
+					// Wrap logic
+					if (xOffset + blockWidth > windowWidth) {
+						xOffset = 0.0f;
+						yOffset += blockHeight + spacing;
+					}
+
+					bool used = pool->GetUsed(j);
+					ImU32 col = used ? IM_COL32(50, 220, 50, 255) : IM_COL32(220, 50, 50, 255);
+
+					// Draw Rect
+					draw->AddRectFilled(ImVec2(p.x + xOffset, p.y + yOffset), ImVec2(p.x + xOffset + blockWidth, p.y + yOffset + blockHeight), col);
+
+					// Optional Tooltip
+					if (ImGui::IsMouseHoveringRect(ImVec2(p.x + xOffset, p.y + yOffset), ImVec2(p.x + xOffset + blockWidth, p.y + yOffset + blockHeight))) {
+						ImGui::BeginTooltip();
+						ImGui::Text("Block %d: %s", j, used ? "Free" : "Used");
+						ImGui::EndTooltip();
+					}
+
+					xOffset += blockWidth + spacing;
+				}
+				// Reserve layout space so text doesn't overlap blocks
+				ImGui::Dummy(ImVec2(0.0f, yOffset + blockHeight + spacing));
+				// --- VISUALIZATION BLOCK END ---
+
+				RenderAllocationList(Allocator::Pool, pool->GetId());
+
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+			ImGui::PopID();
+		}
+
+		if (ImGui::CollapsingHeader("Buddy Allocators")) {
+			ImGui::PushID("Buddies"); // Global Buddy Scope
+			for (auto* buddy : _buddyAllocators) {
+				ImGui::PushID(buddy->GetId()); // Instance Scope
+
+				BuddyStats stats = buddy->GetStats();
+				float fraction = (stats.capacity > 0) ? (float)stats.usedMemory / (float)stats.capacity : 0.0f;
+
+				ImGui::Text("Buddy ID: %d", buddy->GetId());
+
+				char overlay[32];
+				sprintf_s(overlay, "%.1f%% (%s / %s)", fraction * 100.0f, FormatBytes(stats.usedMemory).c_str(), FormatBytes(stats.capacity).c_str());
+				ImGui::ProgressBar(fraction, ImVec2(-1.0f, 0.0f), overlay);
+
+				RenderAllocationList(Allocator::Buddy, buddy->GetId());
+
+				ImGui::Separator();
+				ImGui::PopID();
+			}
+			ImGui::PopID();
 		}
 	}
 
-	static char buf[64] = "";
-	ImGui::InputText("File", buf, IM_ARRAYSIZE(buf));
-	if (ImGui::Button("Load")) {
-		std::string path = "Resource/" + std::string(buf);
-	}
-	ImGui::Separator();
-	ImGui::Text("Camera Position:");
-	ImGui::BulletText("X: %.2f", _camera.position.x);
-	ImGui::BulletText("Y: %.2f", _camera.position.y);
-	ImGui::BulletText("Z: %.2f", _camera.position.z);
-	ImGui::Separator();
-
-	std::vector<std::string> resources = ResourceManager::Instance().GetCachedResources();
-	for (int i = 0; i < resources.size(); i++) {
-		ImGui::Text("%s", resources[i].c_str());
-
-	}
-	
 	ImGui::End();
 	return true;
 }
@@ -169,15 +343,41 @@ Scene::~Scene()
 		delete part;
 	}
 
+	for (PoolAllocator* allocator : _poolAllocators) {
+		delete allocator;
+	}
+	for (StackAllocator* allocator : _stackAllocators) {
+		delete allocator;
+	}
+	for (BuddyAllocator* allocator : _buddyAllocators) {
+		delete allocator;
+	}
+
 	ResourceManager::Instance().GetPackageManager()->UnmountAllPackages();
 }
 
 bool Scene::Init(unsigned int width, unsigned int height)
 {
+	PoolAllocator* pool1 = new PoolAllocator;
+	pool1->Init(10, 200);
+	_poolAllocators.emplace_back(pool1);
+	PoolAllocator* pool2 = new PoolAllocator;
+	pool2->Init(29, 250);
+	//void* testAllocation = pool2->Request("TestAllocation");
+	_poolAllocators.emplace_back(pool2);
+
+	StackAllocator* stack1 = new StackAllocator;
+	stack1->Init(2000);
+	_stackAllocators.emplace_back(stack1);
+
+	BuddyAllocator* buddy1 = new BuddyAllocator;
+	buddy1->Init(2048);
+	_buddyAllocators.emplace_back(buddy1);
+
 	_width = width;
 	_height = height;
 
-	InitWindow(_width, _height, "Game Engine Assignment 3");
+	InitWindow(_width, _height, "Game Engine Architecture Project");
 	//SetTargetFPS(60);
 	rlImGuiSetup(true);
 
@@ -229,6 +429,22 @@ bool Scene::Init(unsigned int width, unsigned int height)
 
 bool Scene::Update()
 {
+	// Memory tracking updates (every 0.5s)
+	static float elapsed = 0;
+	elapsed += GetFrameTime();
+	if (elapsed > 0.5) {
+		elapsed -= 0.5f;
+		for (auto& allocator : _poolAllocators) {
+			MemoryTracker::Instance().TrackAllocator(allocator->GetId(), allocator->GetStats());
+		}
+		for (auto& allocator : _stackAllocators) {
+			MemoryTracker::Instance().TrackAllocator(allocator->GetId(), allocator->GetStats());
+		}
+		for (auto& allocator : _buddyAllocators) {
+			MemoryTracker::Instance().TrackAllocator(allocator->GetId(), allocator->GetStats());
+		}
+	}
+
 	/* 
 		Check distance between parts
 		if distance is appropiate add the work to the thread vector
@@ -355,9 +571,9 @@ bool Scene::RenderUpdate()
 	rlImGuiBegin();
 	BeginMode3D(_camera);
 
-	//if (!RenderInterface()) {
-	//	return false;
-	//}
+	if (!RenderInterface()) {
+		return false;
+	}
 
 	Color colors[4] = { RED, GREEN, BLUE, YELLOW };
 	int j = 0;

@@ -42,9 +42,6 @@
     <ClCompile Include="BuddyAllocator.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="Interface.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
     <ClCompile Include="MemoryTracker.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
@@ -132,9 +129,6 @@
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="MemoryTracker.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="Interface.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="BuddyAllocator.h">

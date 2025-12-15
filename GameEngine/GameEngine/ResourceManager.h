@@ -11,6 +11,13 @@
 #include <thread>
 #include <chrono>
 
+struct ResourceData {
+	std::string type;
+	std::string guid;
+	int refCount;
+	uint64_t memoryUsage;
+};
+
 class ResourceManager 
 {
 private:
@@ -65,5 +72,5 @@ public:
 	uint64_t GetMemoryUsed();
 
 	// Get cached resources
-	std::vector<std::string> GetCachedResources();
+	std::vector<ResourceData> GetCachedResourcesData();
 };

@@ -1,5 +1,7 @@
 #include "ResourceManager.h"
 #include "GuidUtils.h"
+#include "TextureResource.h"
+#include "MeshResource.h"
 
 ResourceManager::ResourceManager() {
 	workerThread.emplace_back(&ResourceManager::WorkerThread, this);
@@ -191,10 +193,23 @@ bool ResourceManager::LoadObject(Resource* &resource) {
 	
 }
 
-std::vector<std::string> ResourceManager::GetCachedResources() {
-	std::vector<std::string> GUID;
-	for (auto res : _cachedResources) {
-		GUID.push_back(res.first);
+std::vector<ResourceData> ResourceManager::GetCachedResourcesData() {
+	std::vector<ResourceData> resources;
+	for (auto &entry : _cachedResources) {
+		ResourceData data;
+		if (TextureResource* texture = dynamic_cast<TextureResource*>(entry.second)) {
+			data.type = "Texture";
+		}
+		else if (MeshResource* texture = dynamic_cast<MeshResource*>(entry.second)) {
+			data.type = "Mesh";
+		}
+		else {
+			data.type = "Undefined";
+		}
+		data.guid = entry.first;
+		data.refCount = entry.second->GetRef();
+		data.memoryUsage = entry.second->GetMemoryUsage();
+		resources.push_back(data);
 	}
-	return GUID;
+	return resources;
 }
