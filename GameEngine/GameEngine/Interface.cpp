@@ -257,15 +257,7 @@ std::string Interface::FormatTimePoint(const std::chrono::system_clock::time_poi
 
 Interface::~Interface()
 {
-	for (PoolContainer pCon : _pools) {
-		delete pCon.pool;
-	}
-	for (BuddyContainer bCon : _buddies) {
-		delete bCon.buddy;
-	}
-	for (StackContainer sCon : _stacks) {
-		delete sCon.stack;
-	}
+
 }
 
 void Interface::Update()
