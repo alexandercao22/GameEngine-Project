@@ -1,430 +1,113 @@
 #include "Scene.h"
-#include "Settings.h"
-
-#include "imgui.h"
-#include "rlImGui.h"
-#include "raymath.h"
-
-#include "WinFileDialog.h"
-#include <chrono>
-
-#include "ResourceManager.h"
-#include "MeshResource.h"
-#include "TextureResource.h"
-
-#include "EntityEnemy.h"
-#include "EntityGoofy.h"
-#include "EntityMushroom.h"
-
-bool Scene::RenderInterface()
-{
-	ImGui::Begin("ImGui");
-	ImGui::SetWindowPos(ImVec2(0.0f, 0.0f));
-	ImGui::SetWindowSize(ImVec2(200.0f, _height));
-
-	if (ImGui::Button("Open File Explorer")) {
-		std::string path = OpenFileDialog();
-		if (path.find(".obj") != std::string::npos ||
-			path.find(".gltf") != std::string::npos ||
-			path.find(".png") != std::string::npos ||
-			path.find(".jpg") != std::string::npos) {
-			CopyFileToResources(path, "Resources");
-
-			size_t backslash = path.find_last_of("\\") + 1;
-			std::string file = "Resources/" + path.substr(backslash, path.length() - backslash);
-			std::cout << file << std::endl;
-
-		}
-	}
-
-	static char buf[64] = "";
-	ImGui::InputText("File", buf, IM_ARRAYSIZE(buf));
-	if (ImGui::Button("Load")) {
-		std::string path = "Resource/" + std::string(buf);
-	}
-	ImGui::Separator();
-	ImGui::Text("Camera Position:");
-	ImGui::BulletText("X: %.2f", _camera.position.x);
-	ImGui::BulletText("Y: %.2f", _camera.position.y);
-	ImGui::BulletText("Z: %.2f", _camera.position.z);
-	ImGui::Separator();
-
-	std::vector<std::string> resources = ResourceManager::Instance().GetCachedResources();
-	for (int i = 0; i < resources.size(); i++) {
-		ImGui::Text("%s", resources[i].c_str());
-
-	}
-	
-	ImGui::End();
-	return true;
-}
-
-void Scene::RenderResources(Entity *ent)
-{
-	Transform *transform = ent->GetTransform();
-
-	// Frustum culling (kind of)
-	Vector3 camToEnt = Vector3Normalize(transform->translation - _camera.position);
-	Vector3 camForward = Vector3Normalize(_camera.target - _camera.position);
-	float dot = Vector3DotProduct(camToEnt, camForward);
-	if (dot < cos((_camera.fovy / 2))) {
-		return;
-	}
-
-	MeshResource *mesh = ent->GetMesh();
-	TextureResource *texture = ent->GetTexture();
-	if (mesh != nullptr) {
-		if (texture != nullptr) {
-			SetMaterialTexture(&mesh->GetModel().materials[0], MATERIAL_MAP_DIFFUSE, texture->GetTexture());
-			Vector3 rotation = { transform->rotation.x, transform->rotation.y, transform->rotation.z };
-			DrawModelEx(mesh->GetModel(), transform->translation, rotation, transform->rotation.w, transform->scale, WHITE);
-		}
-		else {
-			Vector3 rotation = { transform->rotation.x, transform->rotation.y, transform->rotation.z };
-			DrawModelEx(mesh->GetModel(), transform->translation, rotation, transform->rotation.w, transform->scale, RED);
-		}
-	}
-}
-
-void Scene::Testing()
-{
-	static bool doneTesting = false;
-	if (doneTesting) {
-		return;
-	}
-
-	static int nRuns = 0;
-	const int nIterations = 10;
-	static float t = 0.0f;
-	static double avg = 0.0f;
-
-	const auto firstTestEnt = _entities.begin();
-	if (_parts.size() > 0) {
-		if (_parts[0]->CheckDistance(_camera.position) && !_parts[0]->IsLoaded()) {
-			int numEnemies = 100;
-			ResourceManager::Instance().AddPackage(_parts[0]->GetPath());
-			_parts[0]->SetLoaded(true);
-#ifdef TEST
-			numEnemies = 10000;
-#endif
-			const int numRow = 10;
-			auto t0 = std::chrono::high_resolution_clock::now();
-			for (int i = 0; i < numEnemies; i++) {
-				EntityEnemy *ent = new EntityEnemy;
-				ent->Init();
-				Transform *t = ent->GetTransform();
-				t->translation.x = (int)(i / numRow) * -5;
-				t->translation.z = (i % numRow) * -5;
-				_parts[0]->AddEntity(ent);
-				//_entities.push_back(ent);
-			}
-			auto t1 = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double> duration = t1 - t0;
-			avg += duration.count();
-
-#ifdef DEBUG
-			std::cout << "Time to load " << numEnemies << " EntityEnemy (BLUE): " << duration.count() << "s" << std::endl;
-#endif
-		}
-		else if (!_parts[0]->CheckDistance(_camera.position) && _parts[0]->IsLoaded()) {
-			_parts[0]->DestroyEntities();
-			_parts[0]->SetLoaded(false);
-		}
-	}
-
-	if (nRuns > nIterations) {
-		doneTesting = true;
-
-#ifdef DEBUG
-		avg /= nIterations;
-		std::cout << "Average loading time (BLUE) of " << nIterations << " iterations: " << avg << "s" << std::endl;
-#endif
-	}
-
-	t += GetFrameTime();
-	if (_parts[0]->CheckDistance(_camera.position)) {
-		if (t > 5.0f) {
-			t = 0.0f;
-			_camera.position = { 0.0f, 10.0f, 0.0f };
-			_camera.target = { 0.0f, 10.0f, -1.0f };
-		}
-	}
-	else {
-		if (t > 1.0f) {
-			t = 0.0f;
-			_camera.position = { -40.0f, 10.0f, 0.0f };
-			_camera.target = { -40.0f, 10.0f, -1.0f };
-			nRuns++;
-		}
-	}
-}
+#include <math.h>
 
 Scene::~Scene()
 {
-	//for (Entity *ent : _entities) {
-	//	delete ent;
-	//}
-
-	for (Entity *ent : _entities) {
-		ent->~Entity();
-		_buddy.Free(ent);
+	if (_pool) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_pool->Free(ent);
+		}
+		delete _pool;
 	}
-
-	for (ScenePart* part : _parts) {
-		delete part;
+	if (_buddy) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_buddy->Free(ent);
+		}
+		delete _buddy;
 	}
-
-	ResourceManager::Instance().GetPackageManager()->UnmountAllPackages();
+	if (_stack) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_stack->Free();
+		}
+		delete _stack;
+	}
 }
 
-bool Scene::Init(unsigned int width, unsigned int height)
-{
-	_width = width;
-	_height = height;
-
-	InitWindow(_width, _height, "Game Engine Project");
-	//SetTargetFPS(60);
-	rlImGuiSetup(true);
-
-	// Initialize the global buddy allocator
-	_buddy.Init(512);
-
-	// Intiialize floors
-	Mesh floorMesh = GenMeshPlane(40, 40, 1, 1);
-	_floor = LoadModelFromMesh(floorMesh);
-
-	// Pack and mount packages
-	for (int i = 1; i < 4; i++) {
-		std::string packagePath = "Resources/Level" + std::to_string(i);
-		if (!ResourceManager::Instance().GetPackageManager()->Pack(packagePath, "Resources")) {
-			std::cerr << "Scene::Init(): Could not pack package:" << packagePath << std::endl;;
-		}
-
-		packagePath += ".gepak";
-		if (!ResourceManager::Instance().GetPackageManager()->MountPackage(packagePath)) {
-			std::cerr << "Scene::Init(): Could not load package: " << packagePath << std::endl;
-			return false;
-		}
-	}
-
-	//Initialize the parts
-	{
-		ScenePart *level1 = new ScenePart; // BLUE / POOL
-		level1->Init({ -40, 0, 0 }, "Resources/Level1.gepak");
-		level1->GetPoolAllocator()->Init(20, sizeof(EntityEnemy));
-		_parts.push_back(level1);
-
-		ScenePart *level2 = new ScenePart; // GREEN / BUDDY
-		level2->Init({ 0, 0, -40 }, "Resources/Level2.gepak");
-		level2->GetBuddyAllocator()->Init(1024);
-		_parts.push_back(level2);
-
-		ScenePart *level3 = new ScenePart; // RED / STACK
-		level3->Init({ -40, 0, -40 }, "Resources/Level3.gepak");
-		level3->GetStackAllocator()->Init(2000);
-		_parts.push_back(level3);
-	}
-
-	// Initialize camera
-	{
-		_camera.position = { 0.0f, 2.0f, 10.0f };
-		_camera.target = { 0.0f, 0.0f, 0.0f };
-		_camera.up = { 0.0f, 1.0f, 0.0f };
-		_camera.fovy = 90.0f;
-		_camera.projection = CAMERA_PERSPECTIVE;
-	}
-
-	// Fill pool allocator
-	{
-		//void *nmy = (EntityEnemy *)_buddy.Request(sizeof(EntityEnemy));
-		//EntityEnemy *ent = new (ptr) EntityEnemy();
-		//ent->Init();
-		//_entities.push_back(ent);
-
-		void *ahyuck = (EntityGoofy *)_buddy.Request(sizeof(EntityGoofy));
-		EntityGoofy *goofy = new (ahyuck) EntityGoofy;
-		goofy->Init();
-		Transform *t = goofy->GetTransform();
-		t->translation = { 0.0f, 0.0f, 100.0f };
-		t->scale = { 50.0f, 50.0f, 50.0f };
-		_entities.push_back(goofy);
-	}
+bool Scene::Init(Vector3 pos, std::string path) {
+	_centerPos.x = pos.x;
+	_centerPos.y = pos.y;
+	_centerPos.z = pos.z;
+	_pathToPackage = path;
 
 	return true;
 }
 
-bool Scene::Update()
-{
-	/* 
-		Check distance between parts
-		if distance is appropiate add the work to the thread vector
-		so it can see it has work to do.
-		Add the data from the thread onto the the RM queue.
-
-		Check if the RM queue is empty. If not, load the model/texture
-		with the data. 
-	*/
-
-	if (IsKeyPressed(KEY_C)) {
-		_showCursor = !_showCursor;
-		if (_showCursor) {
-			EnableCursor();
-		}
-		else {
-			DisableCursor();
-		}
+bool Scene::CheckDistance(Vector3 camera) {
+	if (abs(_centerPos.x - camera.x) < 20 && abs(_centerPos.z - camera.z) < 20) {
+		return true;
 	}
-
-	int size = ResourceManager::Instance().GetThreadDataSize();
-//#ifdef DEBUG
-//	std::cout << "ThreadDataSize: " << size << std::endl;
-//#endif
-	//if ( size > 0) {
-	//	// Load the model or texture from the data in ThreadData datastructure
-	//	// All this complexity would not be necessary if we did not use Raylib
-	//	Resource* res = new MeshResource;
-	//	ResourceManager::Instance().LoadObject(res);
-	//}
-
-	//for (auto& part : _parts) {
-	//	if (part->CheckDistance(_camera.position)) {
-	//		if (!part->IsLoaded()) {
-	//			// Load
-	//			std::string path = part->GetPath();
-	//			ResourceManager::Instance().AddPackage(path);
-	//		}
-	//	}
-	//}
-
-#ifndef TEST
-	// BLUE / POOL
-	if (_parts.size() > 0 &&
-		_parts[0]->CheckDistance(_camera.position) && !_parts[0]->IsLoaded()) {
-		ResourceManager::Instance().AddPackage(_parts[0]->GetPath());
-		int numEnemies = 100;
-		const int numRow = 10;
-
-		for (int i = 0; i < numEnemies; i++) {
-			void *ptr = _parts[0]->GetPoolAllocator()->Request();
-			EntityEnemy *ent = new (ptr) EntityEnemy; // Cast the empty memory to an Entity
-			if (!ptr) {
-				break;
-			}
-			ent->Init();
-			Transform *t = ent->GetTransform();
-			t->translation.x = (int)(i / numRow) * -5;
-			t->translation.z = (i % numRow) * -5;
-			_parts[0]->AddEntity(ent);
-		}
-	}
-	else if (!_parts[0]->CheckDistance(_camera.position) && _parts[0]->IsLoaded()) {
-		_parts[0]->DestroyEntities();
-		_parts[0]->SetLoaded(false);
-	}
-
-	// GREEN / BUDDY
-	if (_parts.size() > 1 &&
-		_parts[1]->CheckDistance(_camera.position) && !_parts[1]->IsLoaded()) {
-		ResourceManager::Instance().AddPackage(_parts[1]->GetPath());
-		int numEnemies = 100;
-		const int numRow = 10;
-
-		for (int i = 0; i < numEnemies; i++) {
-			void *ptr = _parts[1]->GetBuddyAllocator()->Request(sizeof(EntityGoofy));
-			if (!ptr) {
-				break;
-			}
-			EntityGoofy *ent = new (ptr) EntityGoofy; // Cast the empty memory to an Entity
-			ent->Init();
-			Transform *t = ent->GetTransform();
-			t->translation.x = (int)(i / numRow) * -20;
-			t->translation.y = 10.0f;
-			t->translation.z = (i % numRow) * -10;
-			t->scale = { 10.0f, 10.0f, 10.0f };
-			_parts[1]->AddEntity(ent);
-		}
-	}
-	else if (!_parts[1]->CheckDistance(_camera.position) && _parts[1]->IsLoaded()) {
-		_parts[1]->DestroyEntities();
-		_parts[1]->SetLoaded(false);
-	}
-
-	// RED / STACK
-	if (_parts.size() > 2 &&
-		_parts[2]->CheckDistance(_camera.position) && !_parts[2]->IsLoaded()) {
-		ResourceManager::Instance().AddPackage(_parts[2]->GetPath());
-		int numEnemies = 100;
-		const int numRow = 10;
-
-		for (int i = 0; i < numEnemies; i++) {
-			void *ptr = _parts[2]->GetStackAllocator()->Request(sizeof(EntityMushroom));
-			if (!ptr) {
-				break;
-			}
-			EntityMushroom *ent = new (ptr) EntityMushroom;
-			ent->Init();
-			Transform *t = ent->GetTransform();
-			t->translation.x = (int)(i / numRow) * -2;
-			t->translation.z = (i % numRow) * -2;
-			_parts[2]->AddEntity(ent);
-		}
-	}
-	else if (!_parts[2]->CheckDistance(_camera.position) && _parts[2]->IsLoaded()) {
-		_parts[2]->DestroyEntities();
-		_parts[2]->SetLoaded(false);
-	}
-#endif
-
-#ifdef TEST
-	Testing();
-#endif
-
-	if (!_showCursor) {
-		UpdateCamera(&_camera, CAMERA_FREE);
-	}
-
-	return true;
+	return false;
 }
 
-bool Scene::RenderUpdate()
+bool Scene::IsLoaded() {
+	return _loaded.load();
+}
+
+void Scene::SetLoaded(bool val) {
+	_loaded.store(val);
+}
+
+std::string Scene::GetPath() {
+	SetLoaded(true);
+	return _pathToPackage;
+}
+
+void Scene::AddEntity(Entity *entity)
 {
-	BeginDrawing();
-	ClearBackground(RAYWHITE);
-	rlImGuiBegin();
-	BeginMode3D(_camera);
+	_entities.push_back(entity);
+}
 
-	//if (!RenderInterface()) {
-	//	return false;
-	//}
+std::vector<Entity *> Scene::GetEntities()
+{
+	return _entities;
+}
 
-	//_interface.Update();
-
-	Color colors[4] = { RED, GREEN, BLUE, YELLOW };
-	int j = 0;
-	for (int i = 0; i < 2; i++) {
-		for (int k = 0; k < 2; k++) {
-			DrawModel(_floor, Vector3{ -40.0f + k * 40, 0, -40.0f + i * 40 }, 1.0f, colors[j]);
-			j++;
+void Scene::DestroyEntities()
+{
+	if (_pool) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_pool->Free(ent);
 		}
 	}
-
-	for (ScenePart *part : _parts) {
-		std::vector<Entity *> entities = part->GetEntities();
-		for (Entity *ent : entities) {
-			RenderResources(ent);
+	if (_buddy) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_buddy->Free(ent);
 		}
 	}
-
-	for (Entity *ent : _entities) {
-		RenderResources(ent);
+	if (_stack) {
+		for (Entity *ent : _entities) {
+			ent->~Entity();
+			_stack->Free();
+		}
 	}
+	_entities.clear();
+}
 
-	DrawGrid(40, 1.0f);
+PoolAllocator *Scene::GetPoolAllocator()
+{
+	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
+		_pool = new PoolAllocator;
+	}
+	return _pool;
+}
 
-	EndMode3D();
-	DrawFPS(0, 0);
-	rlImGuiEnd();
-	EndDrawing();
+BuddyAllocator *Scene::GetBuddyAllocator()
+{
+	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
+		_buddy = new BuddyAllocator;
+	}
+	return _buddy;
+}
 
-	return true;
+StackAllocator *Scene::GetStackAllocator()
+{
+	if (!_pool && !_buddy && !_stack) { // There can only be one allocator per ScenePart
+		_stack = new StackAllocator;
+	}
+	return _stack;
 }

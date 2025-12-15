@@ -1,44 +1,43 @@
 #pragma once
+#include <string>
+#include <atomic>
+#include <vector>
+#include "raylib.h"
 
 #include "Entity.h"
-#include <vector>
-#include <string>
-#include "raylib.h"
-#include "ScenePart.h"
 #include "PoolAllocator.h"
 #include "BuddyAllocator.h"
 #include "StackAllocator.h"
 
-class Scene
-{
-private:
-	std::vector<std::string> _GUIDs; // GUIDs needed for this specific scene
+// This is a class that Scene will hold to demonstrate asynchronous loading
 
-	// Global entities
-	BuddyAllocator _buddy;
+class Scene {
+private:
+	std::string _pathToPackage;
+	Vector3 _centerPos = { 0,0,0 };
+	std::atomic<bool> _loaded{ false };
+
 	std::vector<Entity *> _entities;
 
-	Model _floor;
-	
-	// The parts hold a package to a "lvl" and a distance. When distance is appropiate run async loading
-	std::vector<ScenePart*> _parts;
-
-	Camera3D _camera = { 0 };
-	bool _showCursor = true;
-	unsigned int _width = 1280;
-	unsigned int _height = 720;
-
-	bool RenderInterface();
-	void RenderResources(Entity *ent);
-
-	void Testing();
+	PoolAllocator *_pool = nullptr;
+	BuddyAllocator *_buddy = nullptr;
+	StackAllocator *_stack = nullptr;
 
 public:
 	Scene() = default;
 	~Scene();
 
-	bool Init(unsigned int width = 1280, unsigned int height = 720);
-	bool Update();
-	bool RenderUpdate();
-};
+	bool Init(Vector3 pos, std::string path);
+	bool CheckDistance(Vector3 camera);
+	bool IsLoaded();
+	void SetLoaded(bool val);
+	std::string GetPath();
 
+	void AddEntity(Entity *entity);
+	std::vector<Entity *> GetEntities();
+	void DestroyEntities();
+
+	PoolAllocator *GetPoolAllocator();
+	BuddyAllocator *GetBuddyAllocator();
+	StackAllocator *GetStackAllocator();
+};
