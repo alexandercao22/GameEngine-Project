@@ -1,0 +1,17 @@
+Kollar om Emil är git guden
+
+TODO:
+Test environment for all allocators
+Time measurements of all allocators
+ImGui x Raylib
+Report:
+	- A description of the problem and the solution proposed.
+	- Any considerations and assumptions not mentioned here in the assignment.
+	- A graphical design (possibly UML) to explain the architecture of the memory manager and other components that make use of it.
+	- Graphs comparing the execution time for the different scenarios chosen.
+	- A conclusion section explaining the results obtained and analysing in abroader sense the use of custom allocators for memory management in game projects. For example, explaining which situations in the context of a game would be of most benefit from using each type of allocator implemented.
+
+OS stack (+new?) vs StackAllocator
+OS new vs PoolAllocator
+OS new vs BuddyAllocator
+OS new vs StackAllocator
