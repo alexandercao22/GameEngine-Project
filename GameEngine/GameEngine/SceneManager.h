@@ -12,8 +12,6 @@
 class SceneManager
 {
 private:
-	std::vector<std::string> _GUIDs; // GUIDs needed for this specific scene
-
 	// Global entities
 	BuddyAllocator _buddy;
 	std::vector<Entity *> _entities;
