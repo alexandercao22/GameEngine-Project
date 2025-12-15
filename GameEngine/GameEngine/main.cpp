@@ -1,7 +1,7 @@
 #include "TestCases.h"
 #include "Interface.h"
 #include "PackageManager.h"
-#include "Scene.h"
+#include "SceneManager.h"
 #include "ResourceManager.h"
 
 #include "raylib.h"
@@ -12,14 +12,14 @@
 int main() {
 	//Interface interface;
 
-	Scene scene;
-	scene.Init();
+	SceneManager sceneManager;
+	sceneManager.Init();
 
 	while (!WindowShouldClose()) {
 		//interface.Update();
 
-		scene.Update();
-		scene.RenderUpdate();
+		sceneManager.Update();
+		sceneManager.RenderUpdate();
 	}
 
 	CloseWindow();
