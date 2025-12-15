@@ -1,5 +1,6 @@
 #include "SceneManager.h"
 #include "Settings.h"
+#include "Interface.h"
 
 #include "imgui.h"
 #include "rlImGui.h"
@@ -397,7 +398,7 @@ bool SceneManager::RenderUpdate()
 	//	return false;
 	//}
 
-	//_interface.Update();
+	Interface::Instance().RenderInterface();
 
 	Color colors[4] = { RED, GREEN, BLUE, YELLOW };
 	int j = 0;

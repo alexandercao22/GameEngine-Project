@@ -39,6 +39,15 @@ private:
 	std::string FormatTimePoint(const std::chrono::system_clock::time_point &tp);
 
 public:
+	// Singleton instance
+	static Interface &Instance() {
+		static Interface instance;
+		return instance;
+	}
+	// Copy prevention
+	Interface(const Interface &) = delete;
+	Interface &operator=(const Interface &) = delete;
+
 	Interface();
 	~Interface();
 
