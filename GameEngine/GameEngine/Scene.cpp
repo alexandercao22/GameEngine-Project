@@ -161,8 +161,13 @@ void Scene::Testing()
 
 Scene::~Scene()
 {
+	//for (Entity *ent : _entities) {
+	//	delete ent;
+	//}
+
 	for (Entity *ent : _entities) {
-		delete ent;
+		ent->~Entity();
+		_buddy.Free(ent);
 	}
 
 	for (ScenePart* part : _parts) {
@@ -181,9 +186,14 @@ bool Scene::Init(unsigned int width, unsigned int height)
 	//SetTargetFPS(60);
 	rlImGuiSetup(true);
 
+	// Initialize the global buddy allocator
+	_buddy.Init(512);
+
+	// Intiialize floors
 	Mesh floorMesh = GenMeshPlane(40, 40, 1, 1);
 	_floor = LoadModelFromMesh(floorMesh);
 
+	// Pack and mount packages
 	for (int i = 1; i < 4; i++) {
 		std::string packagePath = "Resources/Level" + std::to_string(i);
 		if (!ResourceManager::Instance().GetPackageManager()->Pack(packagePath, "Resources")) {
@@ -198,31 +208,47 @@ bool Scene::Init(unsigned int width, unsigned int height)
 	}
 
 	//Initialize the parts
-	ScenePart* level1 = new ScenePart; // BLUE
-	level1->Init({ -40, 0, 0 }, "Resources/Level1.gepak");
-	_parts.push_back(level1);
+	{
+		ScenePart *level1 = new ScenePart; // BLUE / POOL
+		level1->Init({ -40, 0, 0 }, "Resources/Level1.gepak");
+		level1->GetPoolAllocator()->Init(20, sizeof(EntityEnemy));
+		_parts.push_back(level1);
 
-	ScenePart* level2 = new ScenePart; // GREEN
-	level2->Init({ 0, 0, -40 }, "Resources/Level2.gepak");
-	_parts.push_back(level2);
+		ScenePart *level2 = new ScenePart; // GREEN / BUDDY
+		level2->Init({ 0, 0, -40 }, "Resources/Level2.gepak");
+		level2->GetBuddyAllocator()->Init(1024);
+		_parts.push_back(level2);
 
-	ScenePart* level3= new ScenePart; // RED
-	level3->Init({ -40, 0, -40 }, "Resources/Level3.gepak");
-	_parts.push_back(level3);
+		ScenePart *level3 = new ScenePart; // RED / STACK
+		level3->Init({ -40, 0, -40 }, "Resources/Level3.gepak");
+		level3->GetStackAllocator()->Init(2000);
+		_parts.push_back(level3);
+	}
 
 	// Initialize camera
-	_camera.position = { 0.0f, 2.0f, 10.0f };
-	_camera.target = { 0.0f, 0.0f, 0.0f };
-	_camera.up = { 0.0f, 1.0f, 0.0f };
-	_camera.fovy = 90.0f;
-	_camera.projection = CAMERA_PERSPECTIVE;
+	{
+		_camera.position = { 0.0f, 2.0f, 10.0f };
+		_camera.target = { 0.0f, 0.0f, 0.0f };
+		_camera.up = { 0.0f, 1.0f, 0.0f };
+		_camera.fovy = 90.0f;
+		_camera.projection = CAMERA_PERSPECTIVE;
+	}
 
-	EntityGoofy *goofy = new EntityGoofy;
-	goofy->Init();
-	Transform *t = goofy->GetTransform();
-	t->translation = { 0.0f, 0.0f, 100.0f };
-	t->scale = { 50.0f, 50.0f, 50.0f };
-	_entities.push_back(goofy);
+	// Fill pool allocator
+	{
+		//void *nmy = (EntityEnemy *)_buddy.Request(sizeof(EntityEnemy));
+		//EntityEnemy *ent = new (ptr) EntityEnemy();
+		//ent->Init();
+		//_entities.push_back(ent);
+
+		void *ahyuck = (EntityGoofy *)_buddy.Request(sizeof(EntityGoofy));
+		EntityGoofy *goofy = new (ahyuck) EntityGoofy;
+		goofy->Init();
+		Transform *t = goofy->GetTransform();
+		t->translation = { 0.0f, 0.0f, 100.0f };
+		t->scale = { 50.0f, 50.0f, 50.0f };
+		_entities.push_back(goofy);
+	}
 
 	return true;
 }
@@ -271,7 +297,7 @@ bool Scene::Update()
 	//}
 
 #ifndef TEST
-	// BLUE part
+	// BLUE / POOL
 	if (_parts.size() > 0 &&
 		_parts[0]->CheckDistance(_camera.position) && !_parts[0]->IsLoaded()) {
 		ResourceManager::Instance().AddPackage(_parts[0]->GetPath());
@@ -279,7 +305,11 @@ bool Scene::Update()
 		const int numRow = 10;
 
 		for (int i = 0; i < numEnemies; i++) {
-			EntityEnemy *ent = new EntityEnemy;
+			void *ptr = _parts[0]->GetPoolAllocator()->Request();
+			EntityEnemy *ent = new (ptr) EntityEnemy; // Cast the empty memory to an Entity
+			if (!ptr) {
+				break;
+			}
 			ent->Init();
 			Transform *t = ent->GetTransform();
 			t->translation.x = (int)(i / numRow) * -5;
@@ -292,7 +322,7 @@ bool Scene::Update()
 		_parts[0]->SetLoaded(false);
 	}
 
-	// GREEN part
+	// GREEN / BUDDY
 	if (_parts.size() > 1 &&
 		_parts[1]->CheckDistance(_camera.position) && !_parts[1]->IsLoaded()) {
 		ResourceManager::Instance().AddPackage(_parts[1]->GetPath());
@@ -300,7 +330,11 @@ bool Scene::Update()
 		const int numRow = 10;
 
 		for (int i = 0; i < numEnemies; i++) {
-			EntityGoofy *ent = new EntityGoofy;
+			void *ptr = _parts[1]->GetBuddyAllocator()->Request(sizeof(EntityGoofy));
+			if (!ptr) {
+				break;
+			}
+			EntityGoofy *ent = new (ptr) EntityGoofy; // Cast the empty memory to an Entity
 			ent->Init();
 			Transform *t = ent->GetTransform();
 			t->translation.x = (int)(i / numRow) * -20;
@@ -315,7 +349,7 @@ bool Scene::Update()
 		_parts[1]->SetLoaded(false);
 	}
 
-	// RED part
+	// RED / STACK
 	if (_parts.size() > 2 &&
 		_parts[2]->CheckDistance(_camera.position) && !_parts[2]->IsLoaded()) {
 		ResourceManager::Instance().AddPackage(_parts[2]->GetPath());
@@ -323,7 +357,11 @@ bool Scene::Update()
 		const int numRow = 10;
 
 		for (int i = 0; i < numEnemies; i++) {
-			EntityMushroom *ent = new EntityMushroom;
+			void *ptr = _parts[2]->GetStackAllocator()->Request(sizeof(EntityMushroom));
+			if (!ptr) {
+				break;
+			}
+			EntityMushroom *ent = new (ptr) EntityMushroom;
 			ent->Init();
 			Transform *t = ent->GetTransform();
 			t->translation.x = (int)(i / numRow) * -2;
@@ -358,6 +396,8 @@ bool Scene::RenderUpdate()
 	//if (!RenderInterface()) {
 	//	return false;
 	//}
+
+	//_interface.Update();
 
 	Color colors[4] = { RED, GREEN, BLUE, YELLOW };
 	int j = 0;
