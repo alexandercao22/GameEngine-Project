@@ -1,12 +1,6 @@
-#include "TestCases.h"
-#include "PackageManager.h"
-#include "SceneManager.h"
-#include "ResourceManager.h"
-
 #include "raylib.h"
-#include <chrono>
 
-#include <filesystem>
+#include "SceneManager.h"
 
 int main() {
 	SceneManager sceneManager;
