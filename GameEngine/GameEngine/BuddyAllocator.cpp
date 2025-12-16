@@ -251,8 +251,8 @@ void BuddyAllocator::DrawInterface()
 	ImVec2 origin = ImGui::GetCursorScreenPos();
 
 	const float blockHeight = 20.0f;
-	const float blockSpacing = 8.0f;
-	const float totalWidth = 600.0f;
+	const float blockSpacing = 1.0f;
+	const float totalWidth = ImGui::GetWindowWidth() - 18.0f;
 
 	int maxLevel = std::log2(_size) - std::log2(_maxDepthSize);
 

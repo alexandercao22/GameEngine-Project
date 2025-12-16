@@ -219,6 +219,7 @@ bool SceneManager::RenderInterface()
 				char overlay[32];
 				sprintf_s(overlay, "%.1f%% (%s / %s)", fraction * 100.0f, FormatBytes(stats.usedMemory).c_str(), FormatBytes(stats.capacity).c_str());
 				ImGui::ProgressBar(fraction, ImVec2(-1.0f, 0.0f), overlay);
+				buddy->DrawInterface();
 
 				RenderAllocationList(Allocator::Buddy, buddy->GetId());
 
