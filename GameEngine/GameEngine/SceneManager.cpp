@@ -341,8 +341,19 @@ SceneManager::~SceneManager()
 		_buddy->Free(ent);
 	}
 
-	for (Scene * part : _scenes) {
-		delete part;
+	for (Scene *scene : _scenes) {
+		PoolAllocator *pool = scene->GetPoolAllocator();
+		BuddyAllocator *buddy = scene->GetBuddyAllocator();
+		StackAllocator *stack = scene->GetStackAllocator();
+
+		if (pool)
+			_poolAllocators.erase(std::find(_poolAllocators.begin(), _poolAllocators.end(), pool));
+		if (buddy)
+			_buddyAllocators.erase(std::find(_buddyAllocators.begin(), _buddyAllocators.end(), buddy));
+		if (stack)
+			_stackAllocators.erase(std::find(_stackAllocators.begin(), _stackAllocators.end(), stack));
+
+		delete scene;
 	}
 
 	for (PoolAllocator* allocator : _poolAllocators) {
@@ -356,7 +367,6 @@ SceneManager::~SceneManager()
 	}
 
 	ResourceManager::Instance().GetPackageManager()->UnmountAllPackages();
-	delete _buddy;
 }
 
 bool SceneManager::Init(unsigned int width, unsigned int height)
