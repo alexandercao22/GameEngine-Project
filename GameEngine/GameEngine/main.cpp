@@ -9,14 +9,10 @@
 #include <filesystem>
 
 int main() {
-	//Interface interface;
-
 	SceneManager sceneManager;
 	sceneManager.Init();
 
 	while (!WindowShouldClose()) {
-		//interface.Update();
-
 		sceneManager.Update();
 		sceneManager.RenderUpdate();
 	}

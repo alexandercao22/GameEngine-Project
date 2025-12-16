@@ -608,11 +608,11 @@ bool SceneManager::RenderUpdate()
 	rlImGuiBegin();
 	BeginMode3D(_camera);
 
-	//if (!RenderInterface()) {
-	//	return false;
-	//}
+	if (!RenderInterface()) {
+		return false;
+	}
 
-	Interface::Instance().RenderInterface();
+	//Interface::Instance().RenderInterface();
 
 	Color colors[4] = { RED, GREEN, BLUE, YELLOW };
 	int j = 0;

@@ -137,6 +137,7 @@
     <ClCompile Include="imgui_draw.cpp" />
     <ClCompile Include="imgui_tables.cpp" />
     <ClCompile Include="imgui_widgets.cpp" />
+    <ClCompile Include="Interface.cpp" />
     <ClCompile Include="Libraries\lz4\lz4.c" />
     <ClCompile Include="main.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)Libraries\Includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -162,6 +163,7 @@
     <ClInclude Include="EntityMushroom.h" />
     <ClInclude Include="GuidUtils.h" />
     <ClInclude Include="Entity.h" />
+    <ClInclude Include="Interface.h" />
     <ClInclude Include="MemoryTracker.h" />
     <ClInclude Include="MeshResource.h" />
     <ClInclude Include="Objects.h" />
