@@ -12,17 +12,17 @@
 class SceneManager
 {
 private:
-	// Global entities
-	BuddyAllocator *_buddy = new BuddyAllocator;
 	std::vector<PoolAllocator*> _poolAllocators;
 	std::vector<StackAllocator*> _stackAllocators;
 	std::vector<BuddyAllocator*> _buddyAllocators;
 
+	// Global entities
+	BuddyAllocator *_buddy = new BuddyAllocator;
 	std::vector<Entity *> _entities;
 
 	Model _floor;
 	
-	// The parts hold a package to a "lvl" and a distance. When distance is appropiate run async loading
+	// The scenes hold a package to a "lvl" and a distance. When distance is appropiate run async loading
 	std::vector<Scene *> _scenes;
 
 	Camera3D _camera = { 0 };

@@ -361,22 +361,6 @@ SceneManager::~SceneManager()
 
 bool SceneManager::Init(unsigned int width, unsigned int height)
 {
-	PoolAllocator* pool1 = new PoolAllocator;
-	pool1->Init(10, 200);
-	_poolAllocators.emplace_back(pool1);
-	PoolAllocator* pool2 = new PoolAllocator;
-	pool2->Init(29, 250);
-	//void* testAllocation = pool2->Request("TestAllocation");
-	_poolAllocators.emplace_back(pool2);
-
-	StackAllocator* stack1 = new StackAllocator;
-	stack1->Init(2000);
-	_stackAllocators.emplace_back(stack1);
-
-	BuddyAllocator* buddy1 = new BuddyAllocator;
-	buddy1->Init(2048);
-	_buddyAllocators.emplace_back(buddy1);
-
 	_width = width;
 	_height = height;
 
@@ -386,7 +370,7 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 
 	// Initialize the global buddy allocator
 	_buddy->Init(512);
-	Interface::Instance().AddAllocator(_buddy, &_entities);
+	_buddyAllocators.emplace_back(_buddy);
 
 	// Intiialize floors
 	Mesh floorMesh = GenMeshPlane(40, 40, 1, 1);
@@ -409,18 +393,24 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 	//Initialize the parts
 	{
 		Scene *level1 = new Scene; // BLUE / POOL
-	level1->Init({ -40, 0, 0 }, "Resources/Level1.gepak");
-		level1->GetPoolAllocator()->Init(20, sizeof(EntityEnemy));
+		level1->Init({ -40, 0, 0 }, "Resources/Level1.gepak");
+		PoolAllocator *lvlPool = level1->GetPoolAllocator();
+		lvlPool->Init(20, sizeof(EntityEnemy));
+		_poolAllocators.emplace_back(lvlPool);
 		_scenes.push_back(level1);
 
 		Scene *level2 = new Scene; // GREEN / BUDDY
-	level2->Init({ 0, 0, -40 }, "Resources/Level2.gepak");
-		level2->GetBuddyAllocator()->Init(1024);
+		level2->Init({ 0, 0, -40 }, "Resources/Level2.gepak");
+		BuddyAllocator *lvlBuddy = level2->GetBuddyAllocator();
+		lvlBuddy->Init(1024);
+		_buddyAllocators.emplace_back(lvlBuddy);
 		_scenes.push_back(level2);
 
 		Scene *level3 = new Scene; // RED / STACK
-	level3->Init({ -40, 0, -40 }, "Resources/Level3.gepak");
-		level3->GetStackAllocator()->Init(2000);
+		level3->Init({ -40, 0, -40 }, "Resources/Level3.gepak");
+		StackAllocator *lvlStack = level3->GetStackAllocator();
+		lvlStack->Init(2000);
+		_stackAllocators.emplace_back(lvlStack);
 		_scenes.push_back(level3);
 	}
 
