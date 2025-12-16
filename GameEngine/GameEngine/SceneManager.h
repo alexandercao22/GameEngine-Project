@@ -5,7 +5,9 @@
 #include <string>
 #include "raylib.h"
 #include "Scene.h"
+#include "MemoryTracker.h"
 #include "PoolAllocator.h"
+#include "StackAllocator.h"
 #include "BuddyAllocator.h"
 #include "StackAllocator.h"
 
@@ -14,6 +16,12 @@ class SceneManager
 private:
 	// Global entities
 	BuddyAllocator *_buddy = new BuddyAllocator;
+	std::vector<PoolAllocator*> _poolAllocators;
+	std::vector<StackAllocator*> _stackAllocators;
+	std::vector<BuddyAllocator*> _buddyAllocators;
+
+	std::vector<std::string> _GUIDs; // GUIDs needed for this specific scene
+
 	std::vector<Entity *> _entities;
 
 	Model _floor;
