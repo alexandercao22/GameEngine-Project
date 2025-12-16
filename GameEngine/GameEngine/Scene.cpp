@@ -1,5 +1,4 @@
 #include "Scene.h"
-#include "Interface.h"
 
 Scene::~Scene()
 {
