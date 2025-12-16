@@ -611,8 +611,6 @@ bool SceneManager::RenderUpdate()
 		return false;
 	}
 
-	//Interface::Instance().RenderInterface();
-
 	Color colors[4] = { RED, GREEN, BLUE, YELLOW };
 	int j = 0;
 	for (int i = 0; i < 2; i++) {
@@ -636,7 +634,7 @@ bool SceneManager::RenderUpdate()
 	DrawGrid(40, 1.0f);
 
 	EndMode3D();
-	DrawFPS(0, 0);
+	DrawFPS(GetScreenWidth() - 50, 0);
 	rlImGuiEnd();
 	EndDrawing();
 
