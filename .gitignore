@@ -401,3 +401,4 @@ FodyWeavers.xsd
 
 # Custom ignores
 !GameEngine/GameEngine/Resources/*
+!GameEngine/GameEngine/Resources/*/*

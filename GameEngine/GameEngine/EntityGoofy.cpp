@@ -6,8 +6,8 @@
 
 EntityGoofy::~EntityGoofy()
 {
-    ResourceManager::Instance().UnloadResource("2ed278c8-3fd8-48fc-9ed9-72258ce32ddc");
-    ResourceManager::Instance().UnloadResource("0c90b967-b4af-40fe-a0ab-719e95ffd424");
+    ResourceManager::Instance().UnloadResource("9da063c3-6b94-4df3-859e-6f23319b13e8");
+    ResourceManager::Instance().UnloadResource("bd692322-f24c-41a4-a68e-bd31d954ac02");
 }
 
 bool EntityGoofy::Init()
@@ -18,7 +18,7 @@ bool EntityGoofy::Init()
     }
 
     Resource *mesh = new MeshResource;
-    if (!ResourceManager::Instance().LoadResource("2ed278c8-3fd8-48fc-9ed9-72258ce32ddc", mesh)) {
+    if (!ResourceManager::Instance().LoadResource("9da063c3-6b94-4df3-859e-6f23319b13e8", mesh)) {
         std::cerr << "EntityEnemy::Init(): Failed to load mesh" << std::endl;
         delete mesh;
         return false;
@@ -26,7 +26,7 @@ bool EntityGoofy::Init()
     _mesh = (MeshResource *)mesh;
 
     Resource *texture = new TextureResource;
-    if (!ResourceManager::Instance().LoadResource("0c90b967-b4af-40fe-a0ab-719e95ffd424", texture)) {
+    if (!ResourceManager::Instance().LoadResource("bd692322-f24c-41a4-a68e-bd31d954ac02", texture)) {
         std::cerr << "EntityEnemy::Init(): Failed to load texture" << std::endl;
         delete texture;
     }
