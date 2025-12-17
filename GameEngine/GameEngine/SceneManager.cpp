@@ -412,7 +412,7 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 		Scene *level2 = new Scene; // GREEN / BUDDY
 		level2->Init({ 0, 0, -40 }, "Resources/Level2.gepak");
 		BuddyAllocator *lvlBuddy = level2->GetBuddyAllocator();
-		lvlBuddy->Init(1024);
+		lvlBuddy->Init(std::pow(2, 12)); // 2048 Bytes
 		_buddyAllocators.emplace_back(lvlBuddy);
 		_scenes.push_back(level2);
 
@@ -426,11 +426,11 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 
 	// Initialize camera
 	{
-	_camera.position = { 0.0f, 2.0f, 10.0f };
-	_camera.target = { 0.0f, 0.0f, 0.0f };
-	_camera.up = { 0.0f, 1.0f, 0.0f };
-	_camera.fovy = 90.0f;
-	_camera.projection = CAMERA_PERSPECTIVE;
+		_camera.position = { 0.0f, 2.0f, 10.0f };
+		_camera.target = { 0.0f, 0.0f, 0.0f };
+		_camera.up = { 0.0f, 1.0f, 0.0f };
+		_camera.fovy = 90.0f;
+		_camera.projection = CAMERA_PERSPECTIVE;
 	}
 
 	// Fill pool allocator
@@ -442,11 +442,11 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 
 		void *ahyuck = (EntityGoofy *)_buddy->Request(sizeof(EntityGoofy), "Goofy");
 		EntityGoofy *goofy = new (ahyuck) EntityGoofy;
-	goofy->Init();
-	Transform *t = goofy->GetTransform();
-	t->translation = { 0.0f, 0.0f, 100.0f };
-	t->scale = { 50.0f, 50.0f, 50.0f };
-	_entities.push_back(goofy);
+		goofy->Init();
+		Transform *t = goofy->GetTransform();
+		t->translation = { 0.0f, 0.0f, 100.0f };
+		t->scale = { 50.0f, 50.0f, 50.0f };
+		_entities.push_back(goofy);
 	}
 
 	return true;
@@ -545,18 +545,45 @@ bool SceneManager::Update()
 		const int numRow = 10;
 
 		for (int i = 0; i < numEnemies; i++) {
-			void *ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityGoofy));
-			if (!ptr) {
-				break;
+			void *ptr = nullptr;
+			if (i % 3 == 0) {
+				ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityGoofy));
+				if (!ptr) {
+					break;
+				}
+				EntityGoofy *ent = new (ptr) EntityGoofy; // Cast the empty memory to an Entity
+				ent->Init();
+				Transform *t = ent->GetTransform();
+				t->translation.x = (int)(i / numRow) * -20;
+				t->translation.y = 0.0f;
+				t->translation.z = (i % numRow) * -10;
+				t->scale = { 10.0f, 10.0f, 10.0f };
+				_scenes[1]->AddEntity(ent);
 			}
-			EntityGoofy *ent = new (ptr) EntityGoofy; // Cast the empty memory to an Entity
-			ent->Init();
-			Transform *t = ent->GetTransform();
-			t->translation.x = (int)(i / numRow) * -20;
-			t->translation.y = 0.0f;
-			t->translation.z = (i % numRow) * -10;
-			t->scale = { 10.0f, 10.0f, 10.0f };
-			_scenes[1]->AddEntity(ent);
+			else if (i % 3 == 1) {
+				ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityEnemy));
+				EntityEnemy *ent = new (ptr) EntityEnemy; // Cast the empty memory to an Entity
+				if (!ptr) {
+					break;
+				}
+				ent->Init();
+				Transform *t = ent->GetTransform();
+				t->translation.x = (int)(i / numRow) * -5;
+				t->translation.z = (i % numRow) * -5;
+				_scenes[1]->AddEntity(ent);
+			}
+			else if (i % 3 == 2) {
+				ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityMushroom));
+				if (!ptr) {
+					break;
+				}
+				EntityMushroom *ent = new (ptr) EntityMushroom;
+				ent->Init();
+				Transform *t = ent->GetTransform();
+				t->translation.x = (int)(i / numRow) * -2;
+				t->translation.z = (i % numRow) * -2;
+				_scenes[1]->AddEntity(ent);
+			}
 		}
 	}
 	else if (!_scenes[1]->CheckDistance(_camera.position) && _scenes[1]->IsLoaded()) {
