@@ -596,6 +596,7 @@ bool SceneManager::Update()
 
 	if (!_showCursor) {
 		UpdateCamera(&_camera, CAMERA_FREE);
+		SetMousePosition(_width / 2, _height / 2);
 	}
 
 	return true;
