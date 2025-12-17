@@ -76,7 +76,7 @@ bool SceneManager::RenderInterface()
 
 	// Memory tracking visualization
 	{
-		ImGui::TextColored(ImVec4(0, 1, 0, 1), "--- MEMORY TRACKER ---");
+		ImGui::TextColored(ImVec4(0, 1, 0, 1), "MEMORY TRACKER");
 
 		MemoryTracker& tracker = MemoryTracker::Instance();
 		auto allAllocations = tracker.GetAllocations();
