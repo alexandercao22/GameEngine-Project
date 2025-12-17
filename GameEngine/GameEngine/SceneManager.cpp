@@ -553,7 +553,7 @@ bool SceneManager::Update()
 			ent->Init();
 			Transform *t = ent->GetTransform();
 			t->translation.x = (int)(i / numRow) * -20;
-			t->translation.y = 10.0f;
+			t->translation.y = 0.0f;
 			t->translation.z = (i % numRow) * -10;
 			t->scale = { 10.0f, 10.0f, 10.0f };
 			_scenes[1]->AddEntity(ent);
