@@ -6,7 +6,8 @@
 
 EntityMushroom::~EntityMushroom()
 {
-    ResourceManager::Instance().UnloadResource("bcc3669b-21be-412a-a6f6-7a0d863d51df");
+    //ResourceManager::Instance().UnloadResource("bcc3669b-21be-412a-a6f6-7a0d863d51df");
+    ResourceManager::Instance().UnloadResource("bdfc7912-8198-4ae8-911e-d014b51f66f2");
 }
 
 bool EntityMushroom::Init()
@@ -17,7 +18,7 @@ bool EntityMushroom::Init()
     }
 
     Resource *mesh = new MeshResource;
-    if (!ResourceManager::Instance().LoadResource("bcc3669b-21be-412a-a6f6-7a0d863d51df", mesh)) {
+    if (!ResourceManager::Instance().LoadResource("bdfc7912-8198-4ae8-911e-d014b51f66f2", mesh)) {
         std::cerr << "EntityEnemy::Init(): Failed to load mesh" << std::endl;
         delete mesh;
         return false;

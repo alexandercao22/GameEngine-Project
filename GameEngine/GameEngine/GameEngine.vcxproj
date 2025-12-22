@@ -132,6 +132,7 @@
     <ClCompile Include="EntityEnemy.cpp" />
     <ClCompile Include="EntityGoofy.cpp" />
     <ClCompile Include="EntityMushroom.cpp" />
+    <ClCompile Include="EntityFire.cpp" />
     <ClCompile Include="imgui.cpp" />
     <ClCompile Include="imgui_demo.cpp" />
     <ClCompile Include="imgui_draw.cpp" />
@@ -160,6 +161,7 @@
     <ClInclude Include="EntityEnemy.h" />
     <ClInclude Include="EntityGoofy.h" />
     <ClInclude Include="EntityMushroom.h" />
+    <ClInclude Include="EntityFire.h" />
     <ClInclude Include="GuidUtils.h" />
     <ClInclude Include="Entity.h" />
     <ClInclude Include="MemoryTracker.h" />

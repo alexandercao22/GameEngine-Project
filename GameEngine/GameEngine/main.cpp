@@ -3,6 +3,7 @@
 #include "SceneManager.h"
 
 int main() {
+
 	SceneManager sceneManager;
 	sceneManager.Init();
 

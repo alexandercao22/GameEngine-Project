@@ -8,6 +8,10 @@
 #include "PoolAllocator.h"
 #include "StackAllocator.h"
 #include "BuddyAllocator.h"
+struct Middle {
+	int left = 0;
+	int right = 0;
+};
 
 class SceneManager
 {
@@ -32,6 +36,7 @@ private:
 
 	bool RenderInterface();
 	void RenderResources(Entity *ent);
+	void RenderBillboard(Entity *ent);
 
 	void Testing();
 
