@@ -62,7 +62,7 @@ bool ResourceManager::UnloadResource(std::string guid) {
 		return false;
 	}
 	int ref = res->GetRef();
-	if (ref <= 1) {
+	if (ref < 1) {
 		// References goes to 0 -> remove resource from cache
 		_memoryUsed -= _cachedResources[guid]->GetMemoryUsage();
 		_cachedResources[guid]->Unload();
@@ -125,6 +125,7 @@ void ResourceManager::WorkerThread() {
 		{
 			std::unique_lock<std::mutex> lock(_packageMutex);
 			if (_newPackage.empty())
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 				continue;
 			package = std::move(_newPackage.front());
 			_newPackage.erase(_newPackage.begin());

@@ -59,7 +59,7 @@ void Scene::AddEntity(Entity *entity)
 	_entities.push_back(entity);
 }
 
-std::vector<Entity *> Scene::GetEntities()
+std::vector<Entity *>& Scene::GetEntities()
 {
 	return _entities;
 }
@@ -81,8 +81,8 @@ void Scene::DestroyEntities()
 	if (_stack) {
 		for (Entity *ent : _entities) {
 			ent->~Entity();
-			_stack->Free();
 		}
+		_stack->Reset();
 	}
 	_entities.clear();
 }
@@ -109,4 +109,16 @@ StackAllocator *Scene::GetStackAllocator()
 		_stack = new StackAllocator;
 	}
 	return _stack;
+}
+
+int Scene::CheckLastFrame() {
+	return _lastFrame;
+}
+
+void Scene::SetLastFrame(int frame) {
+	
+	if (frame == 1)
+		_lastFrame++;
+	else
+		_lastFrame = 0;
 }

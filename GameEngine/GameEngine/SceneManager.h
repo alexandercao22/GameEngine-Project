@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Entity.h"
+#include "Entityfire.h"
 #include <vector>
 #include <string>
 #include "raylib.h"
@@ -8,9 +9,12 @@
 #include "PoolAllocator.h"
 #include "StackAllocator.h"
 #include "BuddyAllocator.h"
+#include <chrono>
 struct Middle {
-	int left = 0;
-	int right = 0;
+	float left = 0.0f;
+	float right = 0.0f;
+	float forward = 0.0f;
+	float backward = 0.0f;
 };
 
 class SceneManager
@@ -23,6 +27,7 @@ private:
 	// Global entities
 	BuddyAllocator *_buddy = new BuddyAllocator;
 	std::vector<Entity *> _entities;
+	std::vector<EntityFire*> _frameFireEntities;
 
 	Model _floor;
 	
@@ -36,9 +41,9 @@ private:
 
 	bool RenderInterface();
 	void RenderResources(Entity *ent);
-	void RenderBillboard(Entity *ent);
 
 	void Testing();
+
 
 public:
 	SceneManager() = default;

@@ -53,14 +53,26 @@ void* StackAllocator::Request(int size, std::string tag) {
 
 	return block;
 }
+//
+//bool StackAllocator::Free() {
+//	int diff = _blockSize[_index];
+//	_head = static_cast<char*>(_head) - _blockSize[_index];
+//	_index--;
+//
+//	if (TRACK_MEMORY) {
+//		MemoryTracker::Instance().StopTracking(_head);
+//	}
+//
+//	return true;
+//}
 
 bool StackAllocator::Free() {
-	int diff = _blockSize[_index];
-	_head = static_cast<char*>(_head) - _blockSize[_index];
+	void* block = static_cast<char*>(_head) - _blockSize[_index];
+	_head = block;
 	_index--;
 
 	if (TRACK_MEMORY) {
-		MemoryTracker::Instance().StopTracking(_head);
+		MemoryTracker::Instance().StopTracking(block);
 	}
 
 	return true;
@@ -77,10 +89,10 @@ StackStats StackAllocator::GetStats()
 }
 
 bool StackAllocator::Reset() {
-	_head = _start;
 	while (_index != -1) {
 		Free();
 	}
+	_head = _start;
 	_index = -1;
 
 	return true;

@@ -372,9 +372,6 @@ SceneManager::~SceneManager()
 
 bool SceneManager::Init(unsigned int width, unsigned int height)
 {
-	if (!ResourceManager::Instance().GetPackageManager()->Pack("Resources/Level6", "Resources")) {
-		std::cout << "Det gick inte att spara lvl6" << std::endl;
-	}
 
 	_width = width;
 	_height = height;
@@ -424,7 +421,7 @@ bool SceneManager::Init(unsigned int width, unsigned int height)
 		Scene *level3 = new Scene; // RED / STACK
 		level3->Init({ -40, 0, -40 }, "Resources/Level3.gepak");
 		StackAllocator *lvlStack = level3->GetStackAllocator();
-		lvlStack->Init(8000);
+		lvlStack->Init(105 * sizeof(EntityFire));
 		_stackAllocators.emplace_back(lvlStack);
 		_scenes.push_back(level3);
 	}
@@ -518,10 +515,12 @@ bool SceneManager::Update()
 
 #ifndef TEST
 	// BLUE / POOL
+	static float deltaTime = 0;
+	deltaTime += GetFrameTime();
 	if (_scenes.size() > 0 &&
 		_scenes[0]->CheckDistance(_camera.position) && !_scenes[0]->IsLoaded()) {
 		ResourceManager::Instance().AddPackage(_scenes[0]->GetPath());
-		int numEnemies = 100;
+		int numEnemies = 5;
 		const int numRow = 10;
 
 		for (int i = 0; i < numEnemies; i++) {
@@ -541,12 +540,40 @@ bool SceneManager::Update()
 		_scenes[0]->DestroyEntities();
 		_scenes[0]->SetLoaded(false);
 	}
+	else if (_scenes[0]->CheckDistance(_camera.position) && _scenes[0]->IsLoaded() && deltaTime > 2) {
+		deltaTime -= 2;
+		std::vector<Entity*> &entities  = _scenes[0]->GetEntities();
+		std::cout << entities.size() << std::endl;
+		for (int i = entities.size() - 1; i > 0; i--) {
+			int spawn = rand() % 2;
+			if (spawn == 0) {
+				Entity* ent = entities[i];           
+				ent->~Entity();                       
+				_scenes[0]->GetPoolAllocator()->Free(ent);  
+				entities.erase(entities.begin() + i);
+			}
+		}
+		for (int i = 0; i < 5; i++) {
+			void* ptr = _scenes[0]->GetPoolAllocator()->Request();
+			EntityEnemy* ent = new (ptr) EntityEnemy;
+			if (!ptr) {
+				break;
+			}
+			ent->Init();
+			Transform* t = ent->GetTransform();
+			float x = rand() % 20;
+			float z = rand() % 20;
+			t->translation.x = -(x + 20);
+			t->translation.z = -(z + 20);
+			_scenes[0]->AddEntity(ent);
+		}
+	}
 
 	// GREEN / BUDDY
 	if (_scenes.size() > 1 &&
 		_scenes[1]->CheckDistance(_camera.position) && !_scenes[1]->IsLoaded()) {
 		ResourceManager::Instance().AddPackage(_scenes[1]->GetPath());
-		int numEnemies = 100;
+		int numEnemies = 10;
 		const int numRow = 10;
 
 		for (int i = 0; i < numEnemies; i++) {
@@ -595,18 +622,76 @@ bool SceneManager::Update()
 		_scenes[1]->DestroyEntities();
 		_scenes[1]->SetLoaded(false);
 	}
+	else if (_scenes[1]->CheckDistance(_camera.position) && _scenes[1]->IsLoaded() && deltaTime > 2) {
+		deltaTime -= 2;
+		std::vector<Entity*>& entities = _scenes[1]->GetEntities();
+		std::cout << entities.size() << std::endl;
+		for (int i = entities.size() - 1; i > 0; i--) {
+			int spawn = rand() % 2;
+			if (spawn == 0) {
+				Entity* ent = entities[i];
+				ent->~Entity();
+				_scenes[1]->GetBuddyAllocator()->Free(ent);
+				entities.erase(entities.begin() + i);
+			}
+		}
+		for (int i = 0; i < 5; i++) {
+			int unit = rand() % 3;
+			void* ptr = nullptr;
+			Entity* ent = nullptr;
+			switch (unit) {
+			case 0:
+				ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityEnemy));
+				if (!ptr) break;
+				ent = new (ptr) EntityEnemy;
+				//ent->Init();
+				break;
+			case 1:
+				ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityGoofy));
+				if (!ptr) break;
+				 ent = new (ptr) EntityGoofy;
+				//ent->Init();
+				break;
+			case 2:
+				ptr = _scenes[1]->GetBuddyAllocator()->Request(sizeof(EntityMushroom));
+				if (!ptr) break;
+				 ent = new (ptr) EntityMushroom;
+				//ent->Init();
+				break;
+			}
+
+			if (!ent) {
+				break;
+			}
+			ent->Init();
+			Transform* t = ent->GetTransform();
+			float x = rand() % 40;
+			float z = rand() % 20;
+			t->translation.x = -(x);
+			t->translation.z = -(z + 40);
+			_scenes[1]->AddEntity(ent);
+		}
+	}
 
 	// RED / STACK
+	// Has an extra check for loading since it reloads each frame
 	if (_scenes.size() > 2 &&
-		_scenes[2]->CheckDistance(_camera.position) && !_scenes[2]->IsLoaded()) {
-		ResourceManager::Instance().AddPackage(_scenes[2]->GetPath());
-		int numEnemies = 100;
+		_scenes[2]->CheckDistance(_camera.position)) {
+		if (!_scenes[2]->IsLoaded()) {
+			ResourceManager::Instance().AddPackage(_scenes[2]->GetPath());
+
+		}
+		_scenes[2]->GetStackAllocator()->Reset();
+		_frameFireEntities.clear();
+
+		int numEnemies = 64;
 		const int numRow = 10;
 		std::vector<Middle> middlerow;
 		Middle first = { 0,0 };
 		middlerow.push_back(first);
 		int middleTop = 1;
-	// Lägg till eldklumpar istället
+		
+		// Lägg till eldklumpar istället
 		float startPosX = -40;
 		for (int i = 0; i < numEnemies; i++) {
 
@@ -616,44 +701,62 @@ bool SceneManager::Update()
 			}
 			EntityFire* ent = new (ptr) EntityFire;
 			ent->Init();
+			float offsetX = 0.0f;
+			float offsetY = 0.0f;
 
 			int random = rand() % middleTop;
-			if (random == middleTop) {
+			if (random == 0) {
 				Middle middle;
 				middlerow.push_back(middle);
 				middleTop++;
 			}
-			int riglef = rand() % 2;
-			if (riglef == 0) {
-				middlerow[random].left += 2;
-			}
-			else if (riglef == 1) {
-				middlerow[random].right += 2;
+			else {
+
+				int growth = rand() % 4;
+				switch (growth) {
+					case 0:
+						middlerow[random - 1].left += 0.5;
+						break;
+					case 1:
+						middlerow[random - 1].right += 0.5;
+						break;
+					case 2:
+						middlerow[random - 1].forward += 0.5;
+						break;
+					case 3:
+						middlerow[random - 1].backward += 0.5;
+						break;
+					default:
+						break;
+				}
+				if (growth < 2) {
+					offsetX = growth == 0 ? -middlerow[random - 1].left : middlerow[random - 1].right;
+					int other = rand() % 2;
+					offsetY = other == 0 ? -middlerow[random - 1].backward : middlerow[random - 1].forward;
+				}
+				else {
+					offsetY = growth == 0 ? -middlerow[random - 1].backward : middlerow[random - 1].forward;
+					int other = rand() % 2;
+					offsetY = other == 0 ? -middlerow[random - 1].left : middlerow[random - 1].right;
+				}
+
+
 			}
 			Transform* t = ent->GetTransform();
-			t->translation.x = startPosX + middlerow[random].left;
-			t->translation.y = random * 2;
-			t->translation.z = startPosX + middlerow[random].right;
-				
-			_scenes[2]->AddEntity(ent);
+			t->translation.x = startPosX + offsetX;
+			t->translation.y = random * 0.5f + 0.5;
+			t->translation.z = startPosX + offsetY;
+		
+			_frameFireEntities.push_back(ent);
 		}
-	//	for (int i = 0; i < numEnemies; i++) {
-	//		void *ptr = _scenes[2]->GetStackAllocator()->Request(sizeof(EntityMushroom));
-	//		if (!ptr) {
-	//			break;
-	//		}
-	//		EntityMushroom *ent = new (ptr) EntityMushroom;
-	//		ent->Init();
-	//		Transform *t = ent->GetTransform();
-	//		t->translation.x = (int)(i / numRow) * -2;
-	//		t->translation.z = (i % numRow) * -2;
-	//		_scenes[2]->AddEntity(ent);
-	//	}
+
+		_scenes[2]->SetLoaded(true);
 	}
-	else if (!_scenes[2]->CheckDistance(_camera.position) && _scenes[2]->IsLoaded()) {
-		_scenes[2]->DestroyEntities();
+	else if ((!_scenes[2]->CheckDistance(_camera.position) && _scenes[2]->IsLoaded())) {
+		_frameFireEntities.clear();
 		_scenes[2]->SetLoaded(false);
 	}
+	
 #endif
 
 #ifdef TEST
@@ -668,33 +771,6 @@ bool SceneManager::Update()
 	
 
 	return true;
-}
-
-void SceneManager::RenderBillboard(Entity* ent) {
-	Transform* transform = ent->GetTransform();
-
-	// Frustum culling (kind of)
-	Vector3 camToEnt = Vector3Normalize(transform->translation - _camera.position);
-	Vector3 camForward = Vector3Normalize(_camera.target - _camera.position);
-	float dot = Vector3DotProduct(camToEnt, camForward);
-	if (dot < cos((_camera.fovy / 2))) {
-		return;
-	}
-
-	//MeshResource* mesh = ent->GetMesh();
-	TextureResource* texture = ent->GetTexture();
-	
-		if (texture != nullptr) {
-			//SetMaterialTexture(&mesh->GetModel().materials[0], MATERIAL_MAP_DIFFUSE, texture->GetTexture());
-			Vector3 rotation = { transform->rotation.x, transform->rotation.y, transform->rotation.z };
-			//DrawModelEx(mesh->GetModel(), transform->translation, rotation, transform->rotation.w, transform->scale, WHITE);
-			DrawBillboard(_camera, ent->GetTexture()->GetTexture(), transform->translation, 1, WHITE);
-		}
-		else {
-			//Vector3 rotation = { transform->rotation.x, transform->rotation.y, transform->rotation.z };
-			//DrawModelEx(mesh->GetModel(), transform->translation, rotation, transform->rotation.w, transform->scale, RED);
-		}
-	
 }
 
 bool SceneManager::RenderUpdate()
@@ -718,27 +794,21 @@ bool SceneManager::RenderUpdate()
 	}
 
 	for (Scene *scene : _scenes) {
-		if (scene->GetStackAllocator() != nullptr && scene->CheckDistance(_camera.position) ) {
-			std::vector<Entity*> entities = scene->GetEntities();
-			for (Entity* ent : entities) {
-				RenderBillboard(ent);
-			}
+		
+		std::vector<Entity *> entities = scene->GetEntities();
+		for (Entity *ent : entities) {
+			RenderResources(ent);
 		}
-		else {
-
-			std::vector<Entity *> entities = scene->GetEntities();
-			for (Entity *ent : entities) {
-				RenderResources(ent);
-			}
-		}
+		
+	}
+	for (EntityFire* fire : _frameFireEntities) {
+		RenderResources(fire);
 	}
 
 	for (Entity *ent : _entities) {
 		RenderResources(ent);
 	}
 
-	// Testing billboarding
-	//DrawBillboard(_camera, )
 
 	DrawGrid(40, 1.0f);
 

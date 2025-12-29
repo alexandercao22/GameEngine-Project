@@ -16,6 +16,7 @@ private:
 	std::string _pathToPackage;
 	Vector3 _centerPos = { 0,0,0 };
 	std::atomic<bool> _loaded{ false };
+	int _lastFrame = 0;
 
 	std::vector<Entity *> _entities;
 
@@ -31,10 +32,12 @@ public:
 	bool CheckDistance(Vector3 camera);
 	bool IsLoaded();
 	void SetLoaded(bool val);
+	int CheckLastFrame();
+	void SetLastFrame(int frame);
 	std::string GetPath();
 
 	void AddEntity(Entity *entity);
-	std::vector<Entity *> GetEntities();
+	std::vector<Entity *>& GetEntities();
 	void DestroyEntities();
 
 	PoolAllocator *GetPoolAllocator();
