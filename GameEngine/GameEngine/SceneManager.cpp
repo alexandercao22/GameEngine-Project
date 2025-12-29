@@ -19,7 +19,7 @@
 
 bool SceneManager::RenderInterface()
 {
-	ImGui::Begin("ImGui");
+	ImGui::Begin("Game Engine Project");
 	// Standard window setup
 	ImGui::SetWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
 	ImGui::SetWindowSize(ImVec2(_width / 3.0f, (float)_height), ImGuiCond_Once);
