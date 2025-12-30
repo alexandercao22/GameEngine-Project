@@ -69,7 +69,7 @@ bool ResourceManager::UnloadResource(std::string guid) {
 		_cachedResources.erase(guid);
 		return true;
 	}
-	else if (ref > 1) {
+	else if (ref >= 1) {
 		// References does not go to zero -> subtract from reference count
 		_cachedResources[guid]->RefSub();
 		return true;

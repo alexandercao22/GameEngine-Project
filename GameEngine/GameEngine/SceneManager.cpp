@@ -543,7 +543,6 @@ bool SceneManager::Update()
 	else if (_scenes[0]->CheckDistance(_camera.position) && _scenes[0]->IsLoaded() && deltaTime > 2) {
 		deltaTime -= 2;
 		std::vector<Entity*> &entities  = _scenes[0]->GetEntities();
-		std::cout << entities.size() << std::endl;
 		for (int i = entities.size() - 1; i > 0; i--) {
 			int spawn = rand() % 2;
 			if (spawn == 0) {
@@ -625,7 +624,6 @@ bool SceneManager::Update()
 	else if (_scenes[1]->CheckDistance(_camera.position) && _scenes[1]->IsLoaded() && deltaTime > 2) {
 		deltaTime -= 2;
 		std::vector<Entity*>& entities = _scenes[1]->GetEntities();
-		std::cout << entities.size() << std::endl;
 		for (int i = entities.size() - 1; i > 0; i--) {
 			int spawn = rand() % 2;
 			if (spawn == 0) {
