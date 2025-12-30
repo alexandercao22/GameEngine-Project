@@ -680,16 +680,12 @@ bool SceneManager::Update()
 
 		}
 		_scenes[2]->GetStackAllocator()->Reset();
-		/*for (auto ent : _frameFireEntities) {
-			ent->~EntityFire();
-		}*/
 		for (int i = _frameFireEntities.size() - 1; i > 0; i--) {
 			Entity* ent = _frameFireEntities[i];
 			ent->~Entity();
-			//_scenes[2]->GetStackAllocator()->Free(ent);
 			_frameFireEntities.erase(_frameFireEntities.begin() + i);
 		}
-		//_frameFireEntities.clear();
+
 
 		int numEnemies = 64;
 		const int numRow = 10;
@@ -746,8 +742,6 @@ bool SceneManager::Update()
 					int other = rand() % 2;
 					offsetY = other == 0 ? -middlerow[random - 1].left : middlerow[random - 1].right;
 				}
-
-
 			}
 			Transform* t = ent->GetTransform();
 			t->translation.x = startPosX + offsetX;
@@ -778,8 +772,6 @@ bool SceneManager::Update()
 		SetMousePosition(_width / 2, _height / 2);
 	}
 
-	
-
 	return true;
 }
 
@@ -803,8 +795,7 @@ bool SceneManager::RenderUpdate()
 		}
 	}
 
-	for (Scene *scene : _scenes) {
-		
+	for (Scene *scene : _scenes) {		
 		std::vector<Entity *> entities = scene->GetEntities();
 		for (Entity *ent : entities) {
 			RenderResources(ent);
@@ -818,7 +809,6 @@ bool SceneManager::RenderUpdate()
 	for (Entity *ent : _entities) {
 		RenderResources(ent);
 	}
-
 
 	DrawGrid(40, 1.0f);
 
