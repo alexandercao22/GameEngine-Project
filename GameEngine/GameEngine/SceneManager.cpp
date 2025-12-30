@@ -680,6 +680,9 @@ bool SceneManager::Update()
 
 		}
 		_scenes[2]->GetStackAllocator()->Reset();
+		for (auto ent : _frameFireEntities) {
+			ent->~EntityFire();
+		}
 		_frameFireEntities.clear();
 
 		int numEnemies = 64;
@@ -751,6 +754,9 @@ bool SceneManager::Update()
 		_scenes[2]->SetLoaded(true);
 	}
 	else if ((!_scenes[2]->CheckDistance(_camera.position) && _scenes[2]->IsLoaded())) {
+		for (auto ent : _frameFireEntities) {
+			ent->~EntityFire();
+		}
 		_frameFireEntities.clear();
 		_scenes[2]->SetLoaded(false);
 	}
