@@ -680,10 +680,16 @@ bool SceneManager::Update()
 
 		}
 		_scenes[2]->GetStackAllocator()->Reset();
-		for (auto ent : _frameFireEntities) {
+		/*for (auto ent : _frameFireEntities) {
 			ent->~EntityFire();
+		}*/
+		for (int i = _frameFireEntities.size() - 1; i > 0; i--) {
+			Entity* ent = _frameFireEntities[i];
+			ent->~Entity();
+			//_scenes[2]->GetStackAllocator()->Free(ent);
+			_frameFireEntities.erase(_frameFireEntities.begin() + i);
 		}
-		_frameFireEntities.clear();
+		//_frameFireEntities.clear();
 
 		int numEnemies = 64;
 		const int numRow = 10;
